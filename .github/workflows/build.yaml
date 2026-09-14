@@ -1,7 +1,7 @@
 name: Validate Rivo Personal FOSS
 on:
   push:
-    branches: [main, codex/shizu-recorder-it]
+    branches: [main, codex/shizu-recorder-it, codex/caller-identification]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -26,6 +26,11 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - name: Verify Italian translations
         run: python3 scripts/check-translations.py
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test caller proxy
+        run: node --test backend/test/*.test.mjs
       - name: Clean, test, lint and build FOSS debug
         run: ./gradlew clean :app:testFossDebugUnitTest :app:lintFossDebug :app:assembleFossDebug
       - name: Package APK and checksums

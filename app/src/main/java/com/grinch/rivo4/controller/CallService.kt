@@ -43,10 +43,12 @@ data class CallSession(
 class CallService : InCallService() {
 
     private val contactsRepository: IContactsRepository by inject()
+    private val callerIdentification: com.grinch.rivo4.controller.identification.CallerIdentification by inject()
     private val preferenceManager: PreferenceManager by inject()
     private val serviceScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var redialCount = 0
     private val callStartTimes = mutableMapOf<Call, Long>()
+    private val identifiedIncomingCalls = mutableSetOf<Call>()
     private var flipToSilenceManager: FlipToSilenceManager? = null
 
     private fun getContactBitmap(photoUri: String?): Bitmap? {
@@ -185,6 +187,13 @@ class CallService : InCallService() {
 
     override fun onCreate() {
         super.onCreate()
+        serviceScope.launch {
+            callerIdentification.revision.collect {
+                _currentCallSession.value?.call?.takeIf { it.state != Call.STATE_DISCONNECTED }?.let {
+                    withContext(Dispatchers.IO) { updateNotification(it, identityUpdate = true) }
+                }
+            }
+        }
         instance = this
         flipToSilenceManager = FlipToSilenceManager(this)
         serviceScope.launch {
@@ -200,6 +209,7 @@ class CallService : InCallService() {
         override fun onStateChanged(call: Call, state: Int) {
             super.onStateChanged(call, state)
             updateCallState()
+            identifyIncomingCall(call)
             
             if (state != Call.STATE_RINGING) {
                 val hasRinging = getCalls()?.any { it.state == Call.STATE_RINGING } == true
@@ -499,10 +509,19 @@ class CallService : InCallService() {
         }
 
         updateNotification(call)
+        identifyIncomingCall(call)
+    }
+
+    private fun identifyIncomingCall(call: Call) {
+        if (call.state == Call.STATE_RINGING && identifiedIncomingCalls.add(call)) {
+            callerIdentification.identify(call.details.handle?.schemeSpecificPart.orEmpty(),
+                call.details.handlePresentation == TelecomManager.PRESENTATION_ALLOWED)
+        }
     }
 
     override fun onCallRemoved(call: Call) {
         super.onCallRemoved(call)
+        identifiedIncomingCalls.remove(call)
         call.unregisterCallback(callCallback)
         updateCallState()
         val calls = getCalls() ?: emptyList()
@@ -543,7 +562,8 @@ class CallService : InCallService() {
         return super.onStartCommand(intent, flags, startId)
     }
 
-    private fun updateNotification(call: Call) {
+    private fun updateNotification(call: Call, identityUpdate: Boolean = false) {
+        val renderedState = call.state
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         
         val channel = NotificationChannel(
@@ -578,7 +598,7 @@ class CallService : InCallService() {
 
         val contactName = when {
             contact != null -> contact.name
-            number.isNotEmpty() -> number
+            number.isNotEmpty() -> callerIdentification.display(callerIdentification.label(number)) ?: number
             else -> getString(R.string.label_unknown_number)
         }
         
@@ -717,7 +737,19 @@ class CallService : InCallService() {
             )
         }
 
+        if (identityUpdate) {
+            if (_currentCallSession.value?.call !== call || call.state == Call.STATE_DISCONNECTED) return
+            builder.setOnlyAlertOnce(true)
+        }
         val notification = builder.build()
+        if (identityUpdate) {
+            serviceScope.launch {
+                if (_currentCallSession.value?.call === call && call.state == renderedState && call.state != Call.STATE_DISCONNECTED) {
+                    startForeground(NOTIFICATION_ID, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_PHONE_CALL)
+                }
+            }
+            return
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             startForeground(NOTIFICATION_ID, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_PHONE_CALL)
         } else {

@@ -390,6 +390,9 @@ fun ExpressiveCallScreen(
         }
     }
 
+    val identifiedCaller = com.grinch.rivo4.view.screen.settings.rememberCallerLabel(phoneNumber)
+    val callerRepository = koinInject<com.grinch.rivo4.controller.identification.CallerIdentification>()
+    val visibleCallerName = callerRepository.display(identifiedCaller) ?: contactName
     val heroSection: @Composable () -> Unit = {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -413,7 +416,7 @@ fun ExpressiveCallScreen(
             }
 
             Text(
-                text = contactName,
+                text = visibleCallerName,
                 style = if (isLandscape) MaterialTheme.typography.headlineMediumEmphasized else MaterialTheme.typography.displaySmallEmphasized,
                 color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center,
@@ -421,7 +424,8 @@ fun ExpressiveCallScreen(
                 overflow = TextOverflow.Ellipsis
             )
 
-            if (phoneNumber.isNotEmpty() && phoneNumber != contactName) {
+            com.grinch.rivo4.view.screen.settings.CallerProvenance(identifiedCaller)
+            if (phoneNumber.isNotEmpty() && phoneNumber != visibleCallerName) {
                 Text(
                     text = phoneNumber,
                     style = MaterialTheme.typography.titleMedium,

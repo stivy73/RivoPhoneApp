@@ -563,6 +563,15 @@ fun ContactDetailsScreen(
                     verticalArrangement = Arrangement.spacedBy(24.dp)
                 ) {
                     item {
+                        val identifiedCaller = com.grinch.rivo4.view.screen.settings.rememberCallerLabel(displayPhone)
+                        val callerRepository = org.koin.compose.koinInject<com.grinch.rivo4.controller.identification.CallerIdentification>()
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            if (fullContact == null) callerRepository.display(identifiedCaller)?.let { Text(it, style = MaterialTheme.typography.titleLarge) }
+                            com.grinch.rivo4.view.screen.settings.CallerProvenance(identifiedCaller)
+                            com.grinch.rivo4.view.screen.settings.CallerActions(displayPhone)
+                        }
+                    }
+                    item {
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()

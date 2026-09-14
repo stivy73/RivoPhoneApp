@@ -126,6 +126,7 @@ fun CallLogTileSimple(
                 }
                 
                 if (!selected) {
+                    com.grinch.rivo4.view.screen.settings.CallerActions(log.number)
                     if (recordingCount > 0 && onRecordingsClick != null) {
                         IconButton(onClick = onRecordingsClick) {
                             BadgedBox(
@@ -232,7 +233,9 @@ fun CallLogTile(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(modifier = Modifier.weight(1f)) {
-                    val displayName = remember(log.name, displayOrder) {
+                    val identifiedCaller = com.grinch.rivo4.view.screen.settings.rememberCallerLabel(log.number)
+                    val callerRepository = org.koin.compose.koinInject<com.grinch.rivo4.controller.identification.CallerIdentification>()
+                    val displayName = callerRepository.display(identifiedCaller) ?: remember(log.name, displayOrder) {
                         log.name?.let { 
                             if (it.isNotEmpty()) com.grinch.rivo4.controller.util.ContactUtils.formatContactName(it, displayOrder) else null
                         } ?: formatPhoneNumber(log.number)
@@ -249,6 +252,11 @@ fun CallLogTile(
                             }
                         },
                         supporting2 = buildString {
+                            if (identifiedCaller != null) {
+                                append(callerRepository.source(identifiedCaller))
+                                if (identifiedCaller.spam) append(" • " + rivoResources.getString(R.string.caller_spam))
+                                append(" • ")
+                            }
                             if (showSim && log.simLabel != null) {
                                 append(log.simLabel)
                                 append(" • ")
@@ -268,6 +276,7 @@ fun CallLogTile(
                 }
                 
                 if (!selected) {
+                    com.grinch.rivo4.view.screen.settings.CallerActions(log.number)
                     IconButton(
                         onClick = { onButtonClick(log) },
                         modifier = Modifier.padding(end = 8.dp)

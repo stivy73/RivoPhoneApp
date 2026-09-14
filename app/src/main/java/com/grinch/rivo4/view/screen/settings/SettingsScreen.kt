@@ -409,6 +409,15 @@ fun SettingsScreen(
             }
 
             item {
+                RivoExpressiveCard(title = stringResource(R.string.caller_title), icon = Icons.Outlined.Search) {
+                    RivoListItem(headline = stringResource(R.string.caller_title),
+                        supporting = stringResource(R.string.caller_settings_summary),
+                        leadingIcon = Icons.Outlined.Search,
+                        onClick = { navigator.navigate(CallerIdentificationScreenDestination) })
+                }
+            }
+
+            item {
                 RivoExpressiveCard(
                     title = stringResource(R.string.settings_backup_preferences_title),
                     icon = Icons.Outlined.SettingsBackupRestore

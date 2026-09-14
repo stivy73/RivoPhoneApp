@@ -45,6 +45,7 @@ import com.grinch.rivo4.modal.db.CallNoteDao
 import com.grinch.rivo4.view.components.AddCallNoteDialog
 import com.grinch.rivo4.view.components.CallbackReminderDialog
 import com.grinch.rivo4.controller.CallRecorder
+import com.grinch.rivo4.controller.recording.RecordingFileMatcher
 import com.ramcosta.composedestinations.generated.destinations.CallRecordingsScreenDestination
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -264,20 +265,16 @@ fun ContactDetailsScreen(
         }
     }
 
-    val contactRecordings = remember(fullContact, displayName, phoneNumber) {
-        val all = CallRecorder.listRecordings(context)
-        all.filter { file ->
-            val name = file.name
-            val cleanDisplay = displayName.replace(Regex("[^\\p{L}\\p{N}]"), "_").trim('_')
-            val matchesName = cleanDisplay.length >= 3 && name.contains(cleanDisplay, ignoreCase = true)
-            val cleanPhone = phoneNumber?.replace(Regex("[^0-9]"), "")
-            val matchesPhone = cleanPhone != null && cleanPhone.length >= 6 && name.contains(cleanPhone)
-            val matchesContactPhones = fullContact?.phoneNumbers?.any { num ->
-                val digits = num.replace(Regex("[^0-9]"), "")
-                digits.length >= 6 && name.contains(digits)
-            } == true
-            matchesName || matchesPhone || matchesContactPhones
-        }
+    val recordingsRevision by CallRecorder.recordingsChanged.collectAsState()
+    val contactRecordings = remember(fullContact, displayName, knownNumbers, recordingsRevision) {
+        RecordingFileMatcher.forContact(
+            recordings = CallRecorder.listRecordings(context),
+            displayName = displayName,
+            phoneNumbers = knownNumbers
+        )
+    }
+    val recordingCallerLabel = remember(contactRecordings) {
+        contactRecordings.firstOrNull()?.let(RecordingFileMatcher::callerLabel)
     }
 
     val onBackgroundClick: () -> Unit = {
@@ -295,6 +292,19 @@ fun ContactDetailsScreen(
             (fullContact != null && (log.contactId == fullContact!!.id || fullContact!!.phoneNumbers.any { num -> areNumbersEqual(log.number, num) })) ||
                     (phoneNumber != null && areNumbersEqual(log.number, phoneNumber))
         }
+    }
+    val recordingsByCallId = remember(contactLogs, contactRecordings) {
+        contactLogs.associate { log ->
+            log.id to RecordingFileMatcher.forCall(contactRecordings, log.date, log.duration).size
+        }
+    }
+    val openContactRecordings = {
+        navigator.navigate(
+            CallRecordingsScreenDestination(
+                initialShowList = true,
+                initialCallerLabel = recordingCallerLabel
+            )
+        )
     }
 
     val isFavorite = fullContact?.isFavorite ?: false
@@ -969,6 +979,8 @@ fun ContactDetailsScreen(
                                     contactLogs.take(3).forEachIndexed { index, log ->
                                         CallLogTileSimple(
                                             log = log,
+                                            recordingCount = recordingsByCallId[log.id] ?: 0,
+                                            onRecordingsClick = openContactRecordings,
                                             onCallClick = {
                                                 callLauncher.dial(log.number, fullContact)
                                             }
@@ -1009,22 +1021,29 @@ fun ContactDetailsScreen(
                                             headline = file.nameWithoutExtension,
                                             supporting = SimpleDateFormat("MMM d, yyyy HH:mm", androidx.compose.ui.platform.LocalConfiguration.current.locales[0]).format(Date(file.lastModified())),
                                             leadingIcon = Icons.Outlined.AudioFile,
-                                            trailingIcon = Icons.Default.Share,
-                                            onClick = {
-                                                CallRecorder.share(context, file, RivoText.get(com.grinch.rivo4.R.string.ui_share_recording_158))
+                                            onClick = openContactRecordings,
+                                            trailingContent = {
+                                                IconButton(
+                                                    onClick = {
+                                                        CallRecorder.share(context, file, RivoText.get(com.grinch.rivo4.R.string.ui_share_recording_158))
+                                                    }
+                                                ) {
+                                                    Icon(
+                                                        Icons.Default.Share,
+                                                        contentDescription = RivoText.get(com.grinch.rivo4.R.string.ui_share_recording_158)
+                                                    )
+                                                }
                                             }
                                         )
                                         if (index < contactRecordings.size - 1 && index < 2) {
                                             RivoDivider(Modifier.padding(horizontal = 16.dp))
                                         }
                                     }
-                                    if (contactRecordings.size > 3) {
-                                        TextButton(
-                                            onClick = { navigator.navigate(CallRecordingsScreenDestination(initialShowList = true)) },
-                                            modifier = Modifier.fillMaxWidth()
-                                        ) {
-                                            Text(RivoText.get(com.grinch.rivo4.R.string.ui_view_all_recordings_159, (contactRecordings.size).toString()))
-                                        }
+                                    TextButton(
+                                        onClick = openContactRecordings,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Text(RivoText.get(com.grinch.rivo4.R.string.ui_view_all_recordings_159, (contactRecordings.size).toString()))
                                     }
                                 }
                             }
@@ -1253,4 +1272,3 @@ fun ContactDetailsScreen(
         }
     }
 }
-

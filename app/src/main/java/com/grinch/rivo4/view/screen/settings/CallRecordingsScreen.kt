@@ -99,11 +99,13 @@ enum class DateFilterPreset {
 @Composable
 fun CallRecordingsScreen(
     navigator: DestinationsNavigator,
-    initialShowList: Boolean = false
+    initialShowList: Boolean = false,
+    initialCallerLabel: String? = null
 ) {
     CallRecordingsContent(
         showTopBar = true,
         initialShowList = initialShowList,
+        initialCallerLabel = initialCallerLabel,
         onBack = { navigator.navigateUp() }
     )
 }
@@ -113,6 +115,7 @@ fun CallRecordingsScreen(
 fun CallRecordingsContent(
     showTopBar: Boolean = false,
     initialShowList: Boolean = false,
+    initialCallerLabel: String? = null,
     onBack: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
@@ -130,7 +133,7 @@ fun CallRecordingsContent(
     var recordings by remember { mutableStateOf<List<File>>(emptyList()) }
     var pendingDelete by remember { mutableStateOf<File?>(null) }
     var showDeleteAllConfirm by remember { mutableStateOf(false) }
-    var selectedFilterNumber by remember { mutableStateOf<String?>(null) }
+    var selectedFilterNumber by remember(initialCallerLabel) { mutableStateOf(initialCallerLabel) }
 
     BackHandler(enabled = showingRecordingsList && !initialShowList) {
         showingRecordingsList = false
@@ -1071,48 +1074,7 @@ fun CallRecordingsContent(
                     }
                 }
 
-                // 3. Saved Call Recordings Navigation Tile (directly under Storage Banner)
-                item {
-                    RivoExpressiveCard(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                        shape = RoundedCornerShape(24.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(20.dp))
-                                .clickable { showingRecordingsList = true }
-                                .padding(vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            RivoLeadingIconTile(
-                                icon = Icons.Outlined.LibraryMusic,
-                                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                            Spacer(Modifier.width(12.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = RivoText.get(com.grinch.rivo4.R.string.ui_saved_call_recordings_369),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    text = RivoText.get(com.grinch.rivo4.R.string.ui_recordings_available_392, (recordings.size).toString()),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                contentDescription = RivoText.get(com.grinch.rivo4.R.string.ui_open_recordings_393),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-                }
-
-                // 4. Recording Controls Section
+                // 3. Recording Controls Section
                 item {
                     RivoSectionHeader(
                         title = RivoText.get(com.grinch.rivo4.R.string.ui_recording_controls_394),

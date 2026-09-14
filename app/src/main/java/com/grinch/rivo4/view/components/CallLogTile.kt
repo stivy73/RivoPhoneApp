@@ -11,6 +11,7 @@ import androidx.compose.material.icons.automirrored.filled.CallMissed
 import androidx.compose.material.icons.automirrored.filled.CallReceived
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.rounded.Call
+import androidx.compose.material.icons.outlined.LibraryMusic
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -39,6 +40,8 @@ fun CallLogTileSimple(
     onClick: () -> Unit = {},
     onLongClick: () -> Unit = {},
     onCallClick: () -> Unit = {},
+    recordingCount: Int = 0,
+    onRecordingsClick: (() -> Unit)? = null,
     selected: Boolean = false,
     onSwipeAction: ((SwipeActionType, CallLogEntry) -> Unit)? = null
 ) {
@@ -123,6 +126,24 @@ fun CallLogTileSimple(
                 }
                 
                 if (!selected) {
+                    if (recordingCount > 0 && onRecordingsClick != null) {
+                        IconButton(onClick = onRecordingsClick) {
+                            BadgedBox(
+                                badge = {
+                                    if (recordingCount > 1) {
+                                        Badge { Text(recordingCount.toString()) }
+                                    }
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.LibraryMusic,
+                                    contentDescription = stringResource(R.string.call_recordings_for_call, recordingCount),
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                    }
                     IconButton(
                         onClick = onCallClick,
                         modifier = Modifier.padding(end = 8.dp)

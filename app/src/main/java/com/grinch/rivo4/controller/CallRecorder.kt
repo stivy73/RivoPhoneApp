@@ -247,7 +247,9 @@ object CallRecorder {
             .sortedByDescending { it.lastModified() }
     }
 
-    fun delete(file: File): Boolean = file.delete()
+    fun delete(file: File): Boolean = file.delete().also { deleted ->
+        if (deleted) savedRevision.value += 1
+    }
 
     fun uriFor(context: Context, file: File): Uri {
         return FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)

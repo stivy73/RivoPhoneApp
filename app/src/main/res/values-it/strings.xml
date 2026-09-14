@@ -616,6 +616,7 @@
     <string name="call_recordings_share">Condividi registrazione</string>
     <string name="call_recordings_delete_title">Eliminare la registrazione?</string>
     <string name="call_recordings_delete_message">La registrazione verrà rimossa definitivamente dal dispositivo.</string>
+    <string name="call_recordings_for_call">Apri le registrazioni di questa chiamata (%1$d)</string>
     <string name="video_call_title">Videochiamata</string>
     <string name="video_call_chooser_with">Videochiamata con</string>
     <string name="video_call_system">Videochiamata di sistema</string>

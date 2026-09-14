@@ -1170,11 +1170,8 @@
     <string name="ui_remind_later">Ricordamelo più tardi</string>
     <string name="ui_back_to_call">Torna alla chiamata</string>
     <string name="caller_title">Identificazione numeri sconosciuti</string>
-    <string name="caller_possible">Possibile: %1$s</string>
     <string name="caller_contact">Contatto Android</string>
     <string name="caller_custom">Nome personalizzato</string>
-    <string name="caller_spam">Segnalazioni spam (IPQualityScore)</string>
-    <string name="caller_risk">Rischio IPQS: %1$d/100. Non è una certezza di spam.</string>
     <string name="caller_actions">Identifica o assegna un nome</string>
     <string name="caller_number">Numero di telefono</string>
     <string name="caller_invalid">Inserisci un numero valido con prefisso internazionale.</string>
@@ -1184,13 +1181,11 @@
     <string name="caller_description">Rubrica e nomi personalizzati hanno la precedenza. Solo i numeri sconosciuti vengono inviati ai provider attivati.</string>
     <string name="caller_online">Attiva riconoscimento online</string>
     <string name="caller_google">Usa Google Places</string>
-    <string name="caller_ipqs">Usa IPQualityScore</string>
-    <string name="caller_show_spam">Mostra segnalazioni spam e rischio</string>
     <string name="caller_manage">Gestisci nomi personalizzati</string>
     <string name="caller_add_custom">Aggiungi nome personalizzato</string>
     <string name="caller_clear">Cancella cache identificazioni</string>
     <string name="caller_clear_confirm">Cancellare i risultati online? I nomi personalizzati saranno conservati.</string>
-    <string name="caller_google_policy">I nomi Google Maps sono temporanei e non vengono salvati stabilmente nella cronologia. I risultati IPQS hanno una scadenza separata. I nomi personalizzati restano privati su questo dispositivo.</string>
+    <string name="caller_google_policy">I nomi Google Maps sono temporanei e non vengono salvati stabilmente nella cronologia. I nomi personalizzati restano privati su questo dispositivo.</string>
     <string name="caller_settings_summary">Provider online, chiavi API personali e nomi privati</string>
     <string name="caller_searching">Ricerca nei provider selezionati…</string>
     <string name="caller_search_finished">Ricerca terminata. Se non compare un nome, non è disponibile un’identificazione oppure il servizio non è raggiungibile.</string>
@@ -1206,9 +1201,7 @@
     <string name="api_unreachable">Servizio non raggiungibile. Controlla la connessione</string>
     <string name="api_error">Errore nella verifica della chiave o nella risposta. Riprova</string>
     <string name="api_google_description">Identifica aziende, attività e professionisti</string>
-    <string name="api_ipqs_description">Identifica possibili nomi e segnalazioni spam o rischio</string>
     <string name="api_google_key">Chiave API Google</string>
-    <string name="api_ipqs_key">Chiave API IPQS</string>
     <string name="api_verify">Verifica chiave</string>
     <string name="api_get_key">Ottieni chiave API</string>
     <string name="api_show">Mostra</string>
@@ -1217,6 +1210,5 @@
     <string name="api_no_browser">Nessun browser disponibile per aprire il collegamento</string>
     <string name="api_remove_confirm">Rimuovere la chiave e disabilitare il provider? I nomi personalizzati saranno conservati.</string>
     <string name="api_google_help">1. Crea o seleziona un progetto Google Cloud\n2. Attiva la fatturazione\n3. Abilita Places API (New)\n4. Crea una API key\n5. Incollala qui\nLa verifica richiede solo un ID luogo; le ricerche telefoniche possono avere un costo. Limita la chiave a Places API (New) e alla tua app Android.</string>
-    <string name="api_ipqs_help">1. Crea o accedi al tuo account IPQualityScore\n2. Apri il Dashboard\n3. Crea o copia una API key\n4. Incollala qui\nLa verifica controlla i crediti senza cercare numeri. Accesso telefonico e limiti dipendono dal piano.</string>
     <string name="api_storage_help">Le chiavi personali sono cifrate su questo dispositivo ed escluse dai backup. Ogni chiave viene inviata solo al relativo provider.</string>
 </resources>

@@ -24,12 +24,15 @@ class ProviderSecretsTest {
         val file = File(context.noBackupFilesDir, "provider_keys/google")
         assertFalse(file.readBytes().toString(Charsets.ISO_8859_1).contains("test-only-google-secret"))
     }
-    @Test fun ipqsKeyIndependentAndRemovalIsScoped() {
+    @Test fun legacyRemovalPreservesGoogleAndIsIdempotent() {
         secrets.save("google", "test-only-google-secret")
-        secrets.save("ipqs", "test-only-ipqs-secret")
+        val legacy = File(context.noBackupFilesDir, "provider_keys/ipqs")
+        legacy.writeText("old-encrypted-data-fixture")
+        repeat(2) { secrets.removeLegacyIpqs() }
+        assertFalse(legacy.exists())
+        assertEquals("test-only-google-secret", ProviderSecrets(context).read("google"))
         secrets.remove("google")
         assertEquals("", secrets.read("google"))
-        assertEquals("test-only-ipqs-secret", ProviderSecrets(context).read("ipqs"))
     }
     @Test fun tamperedCiphertextFailsClosed() {
         secrets.save("google", "test-only-google-secret")
@@ -38,10 +41,10 @@ class ProviderSecretsTest {
         assertTrue(runCatching { secrets.read("google") }.isFailure)
     }
     @Test fun randomizedCiphertextOnOverwrite() {
-        secrets.save("ipqs", "test-only-ipqs-secret")
-        val first = File(context.noBackupFilesDir, "provider_keys/ipqs").readBytes()
-        secrets.save("ipqs", "test-only-ipqs-secret")
-        assertFalse(first.contentEquals(File(context.noBackupFilesDir, "provider_keys/ipqs").readBytes()))
+        secrets.save("google", "test-only-google-secret")
+        val first = File(context.noBackupFilesDir, "provider_keys/google").readBytes()
+        secrets.save("google", "test-only-google-secret")
+        assertFalse(first.contentEquals(File(context.noBackupFilesDir, "provider_keys/google").readBytes()))
     }
     @Test fun browserLinksUseViewIntent() {
         var intent: Intent? = null
@@ -49,8 +52,7 @@ class ProviderSecretsTest {
         assertTrue(ProviderLinks.open(wrapper, "google"))
         assertEquals(Intent.ACTION_VIEW, intent!!.action)
         assertEquals("developers.google.com", intent!!.data!!.host)
-        assertTrue(ProviderLinks.open(wrapper, "ipqs"))
-        assertEquals("https://www.ipqualityscore.com/login", intent!!.data.toString())
+        assertFalse(ProviderLinks.open(wrapper, "ipqs"))
     }
     @Test fun noBrowserDoesNotCrash() {
         val wrapper = object : ContextWrapper(context) {

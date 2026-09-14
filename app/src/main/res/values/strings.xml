@@ -1269,11 +1269,8 @@
     <string name="ui_remind_later">Remind Me Later</string>
     <string name="ui_back_to_call">Back to call</string>
     <string name="caller_title">Unknown number identification</string>
-    <string name="caller_possible">Possible: %1$s</string>
     <string name="caller_contact">Android contact</string>
     <string name="caller_custom">Custom name</string>
-    <string name="caller_spam">Spam reports (IPQualityScore)</string>
-    <string name="caller_risk">IPQS risk: %1$d/100. This does not establish spam.</string>
     <string name="caller_actions">Identify or name this number</string>
     <string name="caller_number">Phone number</string>
     <string name="caller_invalid">Enter a valid phone number with country code.</string>
@@ -1283,13 +1280,11 @@
     <string name="caller_description">Contacts and custom names take priority. Only unknown numbers are sent to the providers you enable.</string>
     <string name="caller_online">Enable online identification</string>
     <string name="caller_google">Use Google Places</string>
-    <string name="caller_ipqs">Use IPQualityScore</string>
-    <string name="caller_show_spam">Show spam and risk reports</string>
     <string name="caller_manage">Manage custom names</string>
     <string name="caller_add_custom">Add a custom name</string>
     <string name="caller_clear">Clear identification cache</string>
     <string name="caller_clear_confirm">Clear online results? Custom names will be kept.</string>
-    <string name="caller_google_policy">Google Maps names are temporary and are not saved to history permanently. IPQS results expire separately. Custom names stay private on this device.</string>
+    <string name="caller_google_policy">Google Maps names are temporary and are not saved to history permanently. Custom names stay private on this device.</string>
     <string name="caller_settings_summary">Online providers, personal API keys and private names</string>
     <string name="caller_searching">Searching selected providers…</string>
     <string name="caller_search_finished">Search finished. If no name appears, no identification is available or the service is unreachable.</string>
@@ -1305,9 +1300,7 @@
     <string name="api_unreachable">Service unreachable. Check your connection</string>
     <string name="api_error">Unable to verify the key or read the response. Try again</string>
     <string name="api_google_description">Identifies businesses and professionals</string>
-    <string name="api_ipqs_description">Identifies possible names and spam or risk signals</string>
     <string name="api_google_key">Google API key</string>
-    <string name="api_ipqs_key">IPQS API key</string>
     <string name="api_verify">Verify key</string>
     <string name="api_get_key">Get API key</string>
     <string name="api_show">Show</string>
@@ -1316,6 +1309,5 @@
     <string name="api_no_browser">No browser available to open this link</string>
     <string name="api_remove_confirm">Remove this key and disable the provider? Your custom names will be kept.</string>
     <string name="api_google_help">1. Create or select a Google Cloud project\n2. Activate billing\n3. Enable Places API (New)\n4. Create an API key\n5. Paste it here\nVerification requests only a place ID; phone searches may incur charges. Restrict the key to Places API (New) and your Android app.</string>
-    <string name="api_ipqs_help">1. Create or sign in to your IPQualityScore account\n2. Open the Dashboard\n3. Create or copy an API key\n4. Paste it here\nVerification checks account credits without a phone lookup. Phone access and limits depend on your plan.</string>
     <string name="api_storage_help">Personal keys are encrypted on this device and excluded from backups. Only the selected provider receives its key.</string>
 </resources>

@@ -13,13 +13,10 @@ object CallerPolicy {
         requestEpoch == currentEpoch && requestProviderVersion == currentProviderVersion && enabled && online
 
     fun select(contact: CallerLabel?, custom: String?, online: Boolean, googleEnabled: Boolean,
-        ipqsEnabled: Boolean, google: CallerLabel?, ipqs: CallerLabel?, showSpam: Boolean, now: Long): CallerLabel? {
+        google: CallerLabel?, now: Long): CallerLabel? {
         contact?.let { return it }
         custom?.takeIf { it.isNotBlank() }?.let { return CallerLabel(it, "custom") }
         if (!online) return null
-        val g = google?.takeIf { googleEnabled && it.expires > now && it.name != null }
-        val i = ipqs?.takeIf { ipqsEnabled && it.expires > now }
-        return (g ?: i)?.let { if (showSpam) it.copy(risk = i?.risk, spam = i?.spam == true)
-            else it.copy(risk = null, spam = false) }
+        return google?.takeIf { googleEnabled && it.expires > now && it.name != null }
     }
 }

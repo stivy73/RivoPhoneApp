@@ -254,7 +254,6 @@ fun CallLogTile(
                         supporting2 = buildString {
                             if (identifiedCaller != null) {
                                 append(callerRepository.source(identifiedCaller))
-                                if (identifiedCaller.spam) append(" • " + rivoResources.getString(R.string.caller_spam))
                                 append(" • ")
                             }
                             if (showSim && log.simLabel != null) {

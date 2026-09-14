@@ -11,7 +11,6 @@ class DirectProvidersTest {
     private fun obj(s: String) = Json.parseToJsonElement(s).jsonObject
     private fun normalize(s: String) = s.replace(" ", "").replace("-", "").takeIf { it.startsWith("+") }
     private fun google(s: String) = ProviderPayloads.google(obj(s), number, ::normalize)
-    private fun ipqs(s: String) = ProviderPayloads.ipqs(obj(s), number)
     private fun error(code: Int, message: String) = ProviderPayloads.failure(code, buildJsonObject { put("error", buildJsonObject { put("message", message) }) })
     @Test fun exactPhoneMatchRequired() {
         val result = google("""{"places":[{"displayName":{"text":"Shop"},"internationalPhoneNumber":"+39 02 12345678","id":"123"}]}""")
@@ -39,28 +38,48 @@ class DirectProvidersTest {
     @Test fun quotaExceeded() { assertEquals(ProviderStatus.QUOTA, error(429, "")) }
     @Test fun incompatibleRestriction() { assertEquals(ProviderStatus.RESTRICTION, error(403, "API_KEY_ANDROID_APP_BLOCKED")) }
     @Test fun httpServerFailure() { assertEquals(ProviderStatus.UNREACHABLE, error(503, "")) }
-    @Test fun ipqsInvalidKey() { assertEquals(ProviderStatus.INVALID_KEY, ProviderPayloads.failure(200, obj("""{"success":false,"message":"Invalid API key"}"""))) }
-    @Test fun ipqsQuota() { assertEquals(ProviderStatus.QUOTA, ProviderPayloads.failure(200, obj("""{"success":false,"message":"Insufficient credits"}"""))) }
-    @Test fun ipqsSuccessFalseFails() {
-        try { ipqs("""{"success":false}"""); fail() } catch (e: ProviderFailure) { assertEquals(ProviderStatus.ERROR, e.status) }
+    @Test fun italianLandlineQueryUsesSeparatedPrefixAndRegionButKeepsCanonicalMatch() = runTest {
+        var calls = 0
+        val client = DirectProviders({ emptyMap() }, ProviderExchange { _, _, body, _ ->
+            calls++
+            val request = obj(body!!)
+            assertEquals("+39 0212345678", request["textQuery"]!!.jsonPrimitive.content)
+            assertEquals("IT", request["regionCode"]!!.jsonPrimitive.content)
+            assertEquals(5, request["pageSize"]!!.jsonPrimitive.int)
+            obj("""{"places":[{"displayName":{"text":"Shop"},"internationalPhoneNumber":"+39 02 12345678"}]}""")
+        })
+        val result = client.lookup("google", "synthetic", number, ::normalize)
+        assertEquals(1, calls)
+        assertEquals(number, result["number"]!!.jsonPrimitive.content)
+        assertEquals("Shop", result["name"]!!.jsonPrimitive.content)
+        assertTrue(result["verified"]!!.jsonPrimitive.boolean)
     }
-    @Test fun ipqsNameAndMetadata() {
-        val result = ipqs("""{"success":true,"valid":true,"name":"Company","formatted":"+39 02 12345678","carrier":"Carrier","line_type":"Landline","country":"IT","risky":true,"recent_abuse":false,"fraud_score":90,"spammer":false}""")
-        assertEquals("Company", result["name"]!!.jsonPrimitive.content)
-        assertEquals("Carrier", result["carrier"]!!.jsonPrimitive.content)
+    @Test fun italianMobileQueryDoesNotAddALandlineZero() = runTest {
+        val client = DirectProviders({ emptyMap() }, ProviderExchange { _, _, body, _ ->
+            val request = obj(body!!)
+            assertEquals("+39 3123456789", request["textQuery"]!!.jsonPrimitive.content)
+            assertEquals("IT", request["regionCode"]!!.jsonPrimitive.content)
+            obj("{}")
+        })
+        client.lookup("google", "synthetic", "+393123456789", ::normalize)
+    }
+    @Test fun foreignNumberIsNotForcedIntoItalianRegion() = runTest {
+        val foreign = "+442071234567"
+        val client = DirectProviders({ emptyMap() }, ProviderExchange { _, _, body, _ ->
+            val request = obj(body!!)
+            assertEquals(foreign, request["textQuery"]!!.jsonPrimitive.content)
+            assertFalse(request.containsKey("regionCode"))
+            obj("{}")
+        })
+        client.lookup("google", "synthetic", foreign, ::normalize)
+    }
+    @Test fun formattedQueryStillRejectsADifferentReturnedNumber() = runTest {
+        val client = DirectProviders({ emptyMap() }, ProviderExchange { _, _, _, _ ->
+            obj("""{"places":[{"displayName":{"text":"Wrong shop"},"internationalPhoneNumber":"+39 02 99999999"}]}""")
+        })
+        val result = client.lookup("google", "synthetic", number, ::normalize)
+        assertEquals(JsonNull, result["name"])
         assertFalse(result["verified"]!!.jsonPrimitive.boolean)
-        assertFalse(result["spamReported"]!!.jsonPrimitive.boolean)
-        assertEquals(90, result["risk"]!!.jsonPrimitive.int)
-    }
-    @Test fun ipqsSpammerSeparateFromRisk() {
-        val result = ipqs("""{"success":true,"valid":true,"spammer":true,"fraud_score":10}""")
-        assertTrue(result["spamReported"]!!.jsonPrimitive.boolean)
-        assertEquals(10, result["risk"]!!.jsonPrimitive.int)
-    }
-    @Test fun ipqsNoName() { assertEquals(JsonNull, ipqs("""{"success":true,"valid":false,"name":"N/A"}""")["name"]) }
-    @Test fun ipqsNameArrayIsNotFirstPerson() { assertEquals(JsonNull, ipqs("""{"success":true,"valid":true,"name":["A","B"]}""")["name"]) }
-    @Test fun unexpectedPayloadFails() {
-        try { ipqs("{}"); fail() } catch (e: ProviderFailure) { assertEquals(ProviderStatus.ERROR, e.status) }
     }
     @Test fun googleVerificationUsesOnlyIdAndAndroidHeaders() = runTest {
         var calls = 0
@@ -69,36 +88,18 @@ class DirectProvidersTest {
             assertEquals("places.id", headers["X-Goog-FieldMask"])
             assertEquals("synthetic", headers["X-Goog-Api-Key"])
             assertEquals("test", headers["X-Android-Package"])
-            assertFalse(body!!.contains(number)); obj("{}");
+            val request = obj(body!!)
+            assertEquals("Google", request["textQuery"]!!.jsonPrimitive.content)
+            assertFalse(request.containsKey("regionCode"))
+            assertFalse(body.contains(number)); obj("{}");
         })
         client.verify("google", "synthetic"); assertEquals(1, calls)
     }
-    @Test fun ipqsVerificationChecksCreditsWithoutPhoneLookup() = runTest {
-        val client = DirectProviders({ emptyMap() }, ProviderExchange { url, _, _, _ ->
-            assertTrue(url.startsWith("https://www.ipqualityscore.com/api/json/account/"))
-            obj("""{"success":true,"credits":12}""")
-        })
-        client.verify("ipqs", "synthetic")
-    }
-    @Test fun ipqsVerificationZeroCredits() = runTest {
-        val client = DirectProviders({ emptyMap() }, ProviderExchange { _, _, _, _ -> obj("""{"success":true,"credits":0}""") })
-        try { client.verify("ipqs", "synthetic"); fail() } catch (e: ProviderFailure) { assertEquals(ProviderStatus.QUOTA, e.status) }
-    }
     @Test fun missingKeyNeverCallsNetwork() = runTest {
         val client = DirectProviders({ emptyMap() }, ProviderExchange { _, _, _, _ -> error("Network must not be called") })
-        for (provider in listOf("google", "ipqs")) {
+        for (provider in listOf("google")) {
             try { client.lookup(provider, "", number, ::normalize); fail() } catch (e: ProviderFailure) { assertEquals(ProviderStatus.NOT_CONFIGURED, e.status) }
         }
-    }
-    @Test fun ipqsKeyInHeaderNotLookupUrl() = runTest {
-        val client = DirectProviders({ emptyMap() }, ProviderExchange { url, headers, body, type ->
-            assertEquals("https://ipqualityscore.com/api/json/phone", url)
-            assertEquals("synthetic", headers["IPQS-KEY"])
-            assertFalse(body!!.contains("synthetic"))
-            assertEquals("application/x-www-form-urlencoded", type)
-            obj("""{"success":true,"valid":true}""")
-        })
-        client.lookup("ipqs", "synthetic", number, ::normalize)
     }
     @Test fun exceptionContainsNoUpstreamSecret() {
         val status = error(400, "API_KEY_INVALID synthetic-secret")!!

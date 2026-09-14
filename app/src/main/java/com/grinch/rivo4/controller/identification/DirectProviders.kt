@@ -3,7 +3,6 @@ package com.grinch.rivo4.controller.identification
 import kotlinx.coroutines.*
 import kotlinx.serialization.json.*
 import java.net.URL
-import java.net.URLEncoder
 import java.net.SocketTimeoutException
 import java.io.IOException
 import javax.net.ssl.HttpsURLConnection
@@ -54,19 +53,7 @@ object ProviderPayloads {
             }
         }
     }
-    fun ipqs(data: JsonObject, number: String): JsonObject {
-        if (data["success"]?.jsonPrimitive?.booleanOrNull != true || data["valid"]?.jsonPrimitive?.booleanOrNull == null)
-            throw ProviderFailure(failure(200, data) ?: ProviderStatus.ERROR)
-        return buildJsonObject {
-            put("number", number); put("provider", "ipqs"); put("verified", false); put("ttlSeconds", 3600)
-            put("name", text(data["name"])?.let(::JsonPrimitive) ?: JsonNull)
-            put("spamReported", data["spammer"]?.jsonPrimitive?.booleanOrNull == true)
-            put("risk", data["fraud_score"]?.jsonPrimitive?.intOrNull?.coerceIn(0,100)?.let(::JsonPrimitive) ?: JsonNull)
-            listOf("valid", "formatted", "carrier", "line_type", "country", "spammer", "risky", "recent_abuse", "fraud_score").forEach {
-                data[it]?.let { value -> put(it, value) }
-            }
-        }
-    }
+
 }
 
 /** Independent 3-second deadlines, cancellable blocking I/O, fixed official HTTPS hosts. */
@@ -81,28 +68,29 @@ class DirectProviders(private val androidHeaders: () -> Map<String, String>,
     } catch (_: TimeoutCancellationException) { throw ProviderFailure(ProviderStatus.TIMEOUT) }
     suspend fun lookup(provider: String, secret: String, number: String, normalize: (String) -> String?): JsonObject {
         if (secret.isBlank()) throw ProviderFailure(ProviderStatus.NOT_CONFIGURED)
-        return if (provider == "google") ProviderPayloads.google(google(secret, number, false), number, normalize)
-        else ProviderPayloads.ipqs(http("https://ipqualityscore.com/api/json/phone", mapOf("IPQS-KEY" to secret),
-            "phone=" + URLEncoder.encode(number, "UTF-8"), "application/x-www-form-urlencoded"), number)
+        require(provider == "google")
+        return ProviderPayloads.google(google(secret, number, false), number, normalize)
     }
     suspend fun verify(provider: String, secret: String) {
+        require(provider == "google")
         if (secret.isBlank()) throw ProviderFailure(ProviderStatus.NOT_CONFIGURED)
-        if (provider == "google") {
-            val result = google(secret, "Google", true)
-            if (result.isNotEmpty() && result["places"] !is JsonArray) throw ProviderFailure(ProviderStatus.ERROR)
-        } else {
-            // Account endpoint consumes no phone lookup and sends no real telephone number.
-            val data = http("https://www.ipqualityscore.com/api/json/account/" + URLEncoder.encode(secret, "UTF-8"))
-            if (data["success"]?.jsonPrimitive?.booleanOrNull != true || data["credits"]?.jsonPrimitive?.longOrNull == null)
-                throw ProviderFailure(ProviderStatus.ERROR)
-            if (data.getValue("credits").jsonPrimitive.long <= 0) throw ProviderFailure(ProviderStatus.QUOTA)
-        }
+        val result = google(secret, "Google", true)
+        if (result.isNotEmpty() && result["places"] !is JsonArray) throw ProviderFailure(ProviderStatus.ERROR)
     }
     private suspend fun google(secret: String, query: String, verify: Boolean) = http(
         "https://places.googleapis.com/v1/places:searchText",
         androidHeaders() + mapOf("X-Goog-Api-Key" to secret, "X-Goog-FieldMask" to if (verify) "places.id" else
             "places.id,places.displayName,places.internationalPhoneNumber,places.nationalPhoneNumber,places.primaryType,places.attributions,places.googleMapsUri"),
-        buildJsonObject { put("textQuery", query); put("pageSize", if (verify) 1 else 5); put("languageCode", "it") }.toString())
+        buildJsonObject {
+            // Google recommends a space after the calling code and its matching region.
+            // Derive IT from the canonical +39 number, never from the device locale.
+            // Keep the canonical number unchanged for matching and cache keys.
+            val italianPhone = !verify && query.startsWith("+39")
+            put("textQuery", if (italianPhone) "+39 ${query.removePrefix("+39")}" else query)
+            if (italianPhone) put("regionCode", "IT")
+            put("pageSize", if (verify) 1 else 5)
+            put("languageCode", "it")
+        }.toString())
 
  }
 

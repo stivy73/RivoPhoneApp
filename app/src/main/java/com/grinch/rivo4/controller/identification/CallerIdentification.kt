@@ -15,9 +15,9 @@ import kotlinx.coroutines.flow.update
 import kotlinx.serialization.json.*
 import java.util.Locale
 
-data class CallerLabel(val name: String? = null, val source: String = "", val risk: Int? = null,
-    val spam: Boolean = false, val expires: Long = Long.MAX_VALUE, val attribution: String = "",
-    val url: String = "", val credits: List<Pair<String, String>> = emptyList(), val cacheable: Boolean = false)
+data class CallerLabel(val name: String? = null, val source: String = "",
+    val expires: Long = Long.MAX_VALUE, val attribution: String = "",
+    val url: String = "", val credits: List<Pair<String, String>> = emptyList())
 
 /** No network or contacts queries on the call/UI thread. Independent from recording. */
 class CallerIdentification(private val context: Context) {
@@ -29,7 +29,7 @@ class CallerIdentification(private val context: Context) {
     private val resolvedLocally = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
     private val pending = LookupWork(scope)
     private val secrets = ProviderSecrets(context)
-    private val secretLocks = mapOf("google" to Mutex(), "ipqs" to Mutex())
+    private val secretLocks = mapOf("google" to Mutex())
     private val providerJobs = java.util.concurrent.ConcurrentHashMap<String, Job>()
     private val statuses = java.util.concurrent.ConcurrentHashMap<String, ProviderStatus>()
     private val direct = DirectProviders(androidHeaders = {
@@ -52,8 +52,13 @@ class CallerIdentification(private val context: Context) {
 
     init {
         storage.edit { remove("proxy"); remove("token"); remove("available") }
+        // Remove retired provider data without touching Google or custom names.
+        storage.edit {
+            storage.all.keys.filter { it == "ipqs" || it == "verified:ipqs" || it == "spam" || it.startsWith("ipqs:") }.forEach(::remove)
+        }
         scope.launch {
-            listOf("google", "ipqs").forEach { provider ->
+            secrets.removeLegacyIpqs()
+            listOf("google").forEach { provider ->
                 val initialStatus = try {
                     if (secrets.read(provider).isBlank()) ProviderStatus.NOT_CONFIGURED
                     else if (option("verified:$provider")) ProviderStatus.CONFIGURED else ProviderStatus.NOT_CONFIGURED
@@ -131,7 +136,7 @@ class CallerIdentification(private val context: Context) {
         providerJobs.filterKeys { it.startsWith("$provider:") }.values.forEach { it.cancel() }
     }
     @Synchronized fun toggle(key: String, enabled: Boolean) {
-        if (key == "google" || key == "ipqs") {
+        if (key == "google") {
             cancelProvider(key)
         } else if (key == "online") invalidate()
         storage.edit { putBoolean(key, enabled) }
@@ -146,7 +151,6 @@ class CallerIdentification(private val context: Context) {
     @Synchronized fun clearCache() {
         invalidate()
         results.clear()
-        storage.edit { storage.all.keys.filter { it.startsWith("ipqs:") }.forEach(::remove) }
         revision.update { it + 1 }
     }
 
@@ -172,17 +176,13 @@ class CallerIdentification(private val context: Context) {
         val number = normalize(raw) ?: return null
         if (number !in resolvedLocally) return null
         return CallerPolicy.select(contacts[number], value("custom:$number"), option("online"),
-            option("google"), option("ipqs"), results["google:$number"], results["ipqs:$number"],
-            option("spam", true), System.currentTimeMillis())
+            option("google"), results["google:$number"], System.currentTimeMillis())
     }
-    fun display(label: CallerLabel?): String? = label?.name?.let {
-        if (label.source == "ipqs") context.getString(R.string.caller_possible, it) else it
-    }
+    fun display(label: CallerLabel?): String? = label?.name
     fun source(label: CallerLabel?): String = when (label?.source) {
         "contact" -> context.getString(R.string.caller_contact)
         "custom" -> context.getString(R.string.caller_custom)
         "google" -> "Google Maps" + label.attribution.takeIf { it.isNotBlank() }?.let { " • $it" }.orEmpty()
-        "ipqs" -> "IPQualityScore"
         else -> ""
     }
 
@@ -203,12 +203,6 @@ class CallerIdentification(private val context: Context) {
                 else contacts.remove(number)
             }
             resolvedLocally.add(number)
-            if (!results.containsKey("ipqs:$number")) {
-                value("ipqs:$number").takeIf { it.isNotBlank() }?.let { encoded ->
-                    runCatching { decode(Json.parseToJsonElement(encoded).jsonObject, "ipqs") }
-                        .getOrNull()?.let { results["ipqs:$number"] = it; expireLater("ipqs:$number", it.expires) }
-                }
-            }
             revision.update { it + 1 }
         } catch (_: Exception) { resolvedLocally.remove(number) }
     }
@@ -247,11 +241,9 @@ class CallerIdentification(private val context: Context) {
                     local(number)
                     if (!CallerPolicy.mayLookup(number in resolvedLocally, contacts.containsKey(number),
                             value("custom:$number").isNotBlank(), option("online")) || epoch != generation) return@lookup
-                    parallelProviders providerTask@{ provider ->
+                    googleProvider providerTask@{ provider ->
                             val providerVersion = providerVersions[provider] ?: 0
                             if (!CallerPolicy.providerMayLookup(option(provider), option("verified:$provider"), epoch, generation)) return@providerTask
-                            val cached = results["$provider:$number"]
-                            if (provider == "ipqs" && !refresh && cached?.cacheable == true && cached.expires > System.currentTimeMillis()) return@providerTask
                             try {
                                 providerJobs["$provider:$number"] = coroutineContext[Job]!!
                                 val secret = secrets.read(provider)
@@ -264,18 +256,10 @@ class CallerIdentification(private val context: Context) {
                                 statuses[provider] = ProviderStatus.CONFIGURED
                                 require(data["number"]?.jsonPrimitive?.content == number)
                                 require(data["provider"]?.jsonPrimitive?.content == provider)
-                                val ttl = (data["ttlSeconds"]?.jsonPrimitive?.longOrNull ?: 0).coerceIn(0, 86400)
-                                val expires = System.currentTimeMillis() + if (provider == "google" || ttl == 0L) 300000L else ttl * 1000
+                                val expires = System.currentTimeMillis() + 300000L
                                 val stored = JsonObject(data + ("expires" to JsonPrimitive(expires)))
                                 if (results.size >= 1000) results.keys.firstOrNull()?.let { results.remove(it) }
                                 results["$provider:$number"] = decode(stored, provider)
-                                if (provider == "ipqs" && ttl > 0) {
-                                    val keys = storage.all.keys.filter { it.startsWith("ipqs:") }
-                                    storage.edit {
-                                        if (keys.size >= 500) keys.firstOrNull()?.let(::remove)
-                                        putString("ipqs:$number", stored.toString())
-                                    }
-                                }
                                 revision.update { n -> n + 1 }
                                 expireLater("$provider:$number", expires)
                                 }
@@ -317,8 +301,7 @@ class CallerIdentification(private val context: Context) {
     private fun decode(data: JsonObject, provider: String): CallerLabel {
         val name = data["name"]?.jsonPrimitive?.contentOrNull?.takeIf { it.isNotBlank() }?.take(160)
         require(provider != "google" || name == null || data["verified"]?.jsonPrimitive?.booleanOrNull == true)
-        return CallerLabel(name, provider, data["risk"]?.jsonPrimitive?.intOrNull?.coerceIn(0,100),
-            data["spamReported"]?.jsonPrimitive?.booleanOrNull == true,
+        return CallerLabel(name, provider,
             data["expires"]?.jsonPrimitive?.longOrNull ?: 0,
             data["attributions"]?.jsonArray?.mapNotNull { it.jsonObject["provider"]?.jsonPrimitive?.contentOrNull }?.joinToString(", ").orEmpty(),
             data["url"]?.jsonPrimitive?.contentOrNull.orEmpty(),
@@ -326,6 +309,6 @@ class CallerIdentification(private val context: Context) {
                 val providerName = it.jsonObject["provider"]?.jsonPrimitive?.contentOrNull
                 val providerUri = it.jsonObject["providerUri"]?.jsonPrimitive?.contentOrNull
                 if (providerName != null && providerUri != null) providerName to providerUri else null
-            }.orEmpty(), provider == "ipqs" && (data["ttlSeconds"]?.jsonPrimitive?.longOrNull ?: 0) > 0)
+            }.orEmpty())
     }
 }

@@ -43,8 +43,6 @@ fun CallerProvenance(label: CallerLabel?) {
                 TextButton(onClick = { runCatching { uriHandler.openUri(url) } }) { Text(name) }
             }
         }
-        if (label.spam) Text(stringResource(R.string.caller_spam), color = MaterialTheme.colorScheme.error)
-        label.risk?.let { Text(stringResource(R.string.caller_risk, it), style = MaterialTheme.typography.bodySmall) }
     }
 }
 
@@ -119,11 +117,6 @@ fun CallerIdentificationScreen(navigator: DestinationsNavigator) {
                 Switch(checked = remember(revision) { repository.option("online") }, onCheckedChange = { repository.toggle("online", it) })
             }
             ProviderCard("google", repository)
-            ProviderCard("ipqs", repository)
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(stringResource(R.string.caller_show_spam), Modifier.weight(1f))
-                Switch(checked = remember(revision) { repository.option("spam", true) }, onCheckedChange = { repository.toggle("spam", it) })
-            }
             HorizontalDivider()
             Text(stringResource(R.string.caller_manage), style = MaterialTheme.typography.titleMedium)
             Button(onClick = { editNumber = "" }) { Text(stringResource(R.string.caller_add_custom)) }
@@ -172,17 +165,17 @@ private fun ProviderCard(provider: String, repository: CallerIdentification) {
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             TextButton(onClick = { expanded = !expanded }) {
-                Text(if (provider == "google") "Google Places" else "IPQualityScore", style = MaterialTheme.typography.titleMedium)
+                Text("Google Places", style = MaterialTheme.typography.titleMedium)
             }
-            Text(stringResource(if (provider == "google") R.string.api_google_description else R.string.api_ipqs_description))
+            Text(stringResource(R.string.api_google_description))
             Text(stringResource(statusText), style = MaterialTheme.typography.bodyMedium)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(stringResource(if (provider == "google") R.string.caller_google else R.string.caller_ipqs), Modifier.weight(1f))
+                Text(stringResource(R.string.caller_google), Modifier.weight(1f))
                 Switch(checked = remember(revision) { repository.option(provider) }, onCheckedChange = { repository.toggle(provider, it) }, enabled = !busy)
             }
             if (expanded) {
                 ProviderKeyInput(key, { key = it; localError = false },
-                    stringResource(if (provider == "google") R.string.api_google_key else R.string.api_ipqs_key), !busy)
+                    stringResource(R.string.api_google_key), !busy)
                 Button(enabled = !busy && key.isNotBlank(), onClick = {
                     busy = true
                     scope.launch { try { repository.saveAndVerify(provider, key) } finally { busy = false } }
@@ -191,7 +184,7 @@ private fun ProviderCard(provider: String, repository: CallerIdentification) {
                     if (!com.grinch.rivo4.controller.identification.ProviderLinks.open(context, provider))
                         android.widget.Toast.makeText(context, R.string.api_no_browser, android.widget.Toast.LENGTH_LONG).show()
                 }) { Text(stringResource(R.string.api_get_key)) }
-                Text(stringResource(if (provider == "google") R.string.api_google_help else R.string.api_ipqs_help), style = MaterialTheme.typography.bodySmall)
+                Text(stringResource(R.string.api_google_help), style = MaterialTheme.typography.bodySmall)
                 Text(stringResource(R.string.api_storage_help), style = MaterialTheme.typography.bodySmall)
                 TextButton(enabled = !busy, onClick = { remove = true }) { Text(stringResource(R.string.api_remove)) }
                 if (localError) Text(stringResource(R.string.api_error))

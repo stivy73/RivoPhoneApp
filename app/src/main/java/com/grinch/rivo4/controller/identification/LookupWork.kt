@@ -18,6 +18,6 @@ internal class LookupWork(private val scope: CoroutineScope) {
     @Synchronized fun cancelAll() { jobs.values.toList().forEach { it.cancel() }; jobs.clear() }
 }
 
-internal suspend fun parallelProviders(block: suspend CoroutineScope.(String) -> Unit) = supervisorScope {
-    listOf("google", "ipqs").forEach { provider -> launch { block(provider) } }
+internal suspend fun googleProvider(block: suspend CoroutineScope.(String) -> Unit) = supervisorScope {
+    launch { block("google") }
 }

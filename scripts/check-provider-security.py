@@ -15,7 +15,7 @@ for file in source.glob('*.kt'):
     assert not re.search(r'\bLog\.|println\(|printStackTrace\(', text), f'Unexpected logging in {file.name}'
 transport = (source / 'DirectProviders.kt').read_text()
 assert 'value("proxy")' not in transport and 'Bearer' not in transport
-assert 'IPQS-KEY' in transport and 'instanceFollowRedirects = false' in transport
+assert 'ipqualityscore.com' not in transport and 'instanceFollowRedirects = false' in transport
 build = (root / 'app/build.gradle').read_text()
 assert not re.search(r"buildConfigField.*(?:API_KEY|IPQS_KEY|GOOGLE_KEY)", build)
 # Production-style Google keys; no match text is ever emitted.

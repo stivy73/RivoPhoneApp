@@ -8,7 +8,6 @@ object ProviderLinks {
     fun open(context: Context, provider: String): Boolean {
         val url = when (provider) {
             "google" -> "https://developers.google.com/maps/documentation/places/web-service/get-api-key?hl=it"
-            "ipqs" -> "https://www.ipqualityscore.com/login"
             else -> return false
         }
         return try {

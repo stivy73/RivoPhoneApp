@@ -15,9 +15,10 @@ import javax.crypto.spec.GCMParameterSpec
 class ProviderSecrets(context: Context) {
     private val directory = File(context.noBackupFilesDir, "provider_keys").apply { mkdirs() }
     private fun file(provider: String): AtomicFile {
-        require(provider in listOf("google", "ipqs"))
+        require(provider == "google")
         return AtomicFile(File(directory, provider))
     }
+    @Synchronized fun removeLegacyIpqs() = AtomicFile(File(directory, "ipqs")).delete()
     private fun key(): SecretKey {
         val store = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
         (store.getKey("rivo_provider_keys_v1", null) as? SecretKey)?.let { return it }

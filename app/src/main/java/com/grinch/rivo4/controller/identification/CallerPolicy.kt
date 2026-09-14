@@ -2,6 +2,9 @@ package com.grinch.rivo4.controller.identification
 
 /** Pure rules shared by Android presentation and lookup; independent of audio/call state. */
 object CallerPolicy {
+    fun providerMayLookup(enabled: Boolean, verifiedKey: Boolean, epoch: Int, currentEpoch: Int) =
+        enabled && verifiedKey && epoch == currentEpoch
+
     fun mayLookup(contactLookupSucceeded: Boolean, hasContact: Boolean, hasCustom: Boolean, online: Boolean) =
         contactLookupSucceeded && !hasContact && !hasCustom && online
 

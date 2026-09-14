@@ -8,12 +8,12 @@ import android.telephony.TelephonyManager
 import androidx.core.content.edit
 import com.grinch.rivo4.R
 import kotlinx.coroutines.*
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.serialization.json.*
-import java.net.URL
 import java.util.Locale
-import javax.net.ssl.HttpsURLConnection
 
 data class CallerLabel(val name: String? = null, val source: String = "", val risk: Int? = null,
     val spam: Boolean = false, val expires: Long = Long.MAX_VALUE, val attribution: String = "",
@@ -27,8 +27,18 @@ class CallerIdentification(private val context: Context) {
     private val results = java.util.concurrent.ConcurrentHashMap<String, CallerLabel>()
     private val contacts = java.util.concurrent.ConcurrentHashMap<String, CallerLabel>()
     private val resolvedLocally = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
-    private val pending = java.util.concurrent.ConcurrentHashMap<String, Job>()
-    private val connections = java.util.concurrent.ConcurrentHashMap<String, HttpsURLConnection>()
+    private val pending = LookupWork(scope)
+    private val secrets = ProviderSecrets(context)
+    private val secretLocks = mapOf("google" to Mutex(), "ipqs" to Mutex())
+    private val providerJobs = java.util.concurrent.ConcurrentHashMap<String, Job>()
+    private val statuses = java.util.concurrent.ConcurrentHashMap<String, ProviderStatus>()
+    private val direct = DirectProviders(androidHeaders = {
+        val info = context.packageManager.getPackageInfo(context.packageName, android.content.pm.PackageManager.GET_SIGNING_CERTIFICATES)
+        val certificate = info.signingInfo!!.apkContentsSigners.first().toByteArray()
+        val digest = java.security.MessageDigest.getInstance("SHA-1").digest(certificate)
+        mapOf("X-Android-Package" to context.packageName,
+            "X-Android-Cert" to digest.joinToString("") { "%02X".format(it) })
+    })
     private val providerVersions = java.util.concurrent.ConcurrentHashMap<String, Int>()
     private val lookupStates = java.util.concurrent.ConcurrentHashMap<String, Int>()
     @Volatile private var generation = 0
@@ -41,6 +51,17 @@ class CallerIdentification(private val context: Context) {
     }
 
     init {
+        storage.edit { remove("proxy"); remove("token"); remove("available") }
+        scope.launch {
+            listOf("google", "ipqs").forEach { provider ->
+                val initialStatus = try {
+                    if (secrets.read(provider).isBlank()) ProviderStatus.NOT_CONFIGURED
+                    else if (option("verified:$provider")) ProviderStatus.CONFIGURED else ProviderStatus.NOT_CONFIGURED
+                } catch (_: Exception) { ProviderStatus.ERROR }
+                statuses.putIfAbsent(provider, initialStatus)
+            }
+            revision.update { it + 1 }
+        }
         // One event-driven observer; changes never trigger provider requests.
         runCatching {
             context.contentResolver.registerContentObserver(ContactsContract.Contacts.CONTENT_URI, true,
@@ -59,17 +80,59 @@ class CallerIdentification(private val context: Context) {
 
     fun option(key: String, default: Boolean = false) = storage.getBoolean(key, default)
     fun value(key: String) = storage.getString(key, "").orEmpty()
-    @Synchronized fun configure(key: String, value: String) {
-        if ((key == "proxy" || key == "token") && value.trim() != this.value(key)) clearCache()
-        else invalidate()
-        storage.edit { putString(key, value.trim()) }
-        revision.update { it + 1 }
+    fun status(provider: String) = statuses[provider] ?: ProviderStatus.NOT_CONFIGURED
+    suspend fun apiKey(provider: String): String = withContext(Dispatchers.IO) { secrets.read(provider) }
+    suspend fun saveAndVerify(provider: String, input: String) = withContext(Dispatchers.IO) {
+        val version: Int
+        synchronized(this@CallerIdentification) {
+            cancelProvider(provider)
+            version = providerVersions[provider] ?: 0
+            statuses[provider] = ProviderStatus.VERIFYING
+            storage.edit(commit = true) { putBoolean("verified:$provider", false) }
+            revision.update { it + 1 }
+        }
+        try {
+            if (input.isBlank()) throw ProviderFailure(ProviderStatus.NOT_CONFIGURED)
+            secretLocks.getValue(provider).withLock {
+                if (version != providerVersions[provider]) return@withContext
+                secrets.save(provider, input.trim())
+            }
+            direct.verify(provider, input.trim())
+            synchronized(this@CallerIdentification) {
+                if (version == providerVersions[provider]) {
+                    storage.edit { putBoolean("verified:$provider", true) }
+                    statuses[provider] = ProviderStatus.CONFIGURED
+                }
+            }
+        } catch (e: CancellationException) {
+            synchronized(this@CallerIdentification) {
+                if (version == providerVersions[provider]) statuses[provider] = ProviderStatus.NOT_CONFIGURED
+            }
+            throw e
+        } catch (e: Exception) {
+            synchronized(this@CallerIdentification) {
+                if (version == providerVersions[provider]) statuses[provider] = (e as? ProviderFailure)?.status ?: ProviderStatus.ERROR
+            }
+        } finally { revision.update { it + 1 } }
+    }
+    suspend fun removeKey(provider: String) = withContext(Dispatchers.IO) {
+        secretLocks.getValue(provider).withLock {
+            synchronized(this@CallerIdentification) {
+                cancelProvider(provider)
+                storage.edit { putBoolean(provider, false); remove("verified:$provider") }
+                statuses[provider] = ProviderStatus.NOT_CONFIGURED
+                revision.update { it + 1 }
+            }
+            secrets.remove(provider)
+        }
+    }
+    private fun cancelProvider(provider: String) {
+        providerVersions.merge(provider, 1, Int::plus)
+        providerJobs.filterKeys { it.startsWith("$provider:") }.values.forEach { it.cancel() }
     }
     @Synchronized fun toggle(key: String, enabled: Boolean) {
         if (key == "google" || key == "ipqs") {
-            providerVersions.merge(key, 1, Int::plus)
-            val old = connections.filterKeys { it.startsWith("$key:") }.values.toList()
-            scope.launch { old.forEach { it.disconnect() } }
+            cancelProvider(key)
         } else if (key == "online") invalidate()
         storage.edit { putBoolean(key, enabled) }
         if (key == "google" && !enabled) results.keys.removeAll { it.startsWith("google:") }
@@ -78,11 +141,7 @@ class CallerIdentification(private val context: Context) {
     @Synchronized private fun invalidate() {
         generation++
         lookupStates.clear()
-        pending.values.forEach { it.cancel() }
-        pending.clear()
-        // Disconnect on IO so changing a setting cannot stall the UI.
-        val old = connections.values.toList()
-        scope.launch { old.forEach { it.disconnect() } }
+        pending.cancelAll()
     }
     @Synchronized fun clearCache() {
         invalidate()
@@ -165,44 +224,44 @@ class CallerIdentification(private val context: Context) {
     private fun beginIdentify(raw: String, refresh: Boolean) {
         val number = normalize(raw) ?: return
         val key = "lookup:$number"
-        synchronized(pending) {
-            if (pending[key]?.isActive == true) return
-            val epoch = generation
-            val job = scope.launch(start = CoroutineStart.LAZY) {
+        val epoch = generation
+        pending.start(key) lookup@{
                 lookupStates[number] = R.string.caller_searching
                 revision.update { it + 1 }
                 try {
                     @Suppress("DEPRECATION")
-                    if (PhoneNumberUtils.isEmergencyNumber(raw)) return@launch
+                    if (PhoneNumberUtils.isEmergencyNumber(raw)) return@lookup
                     // A fresh Android lookup is mandatory before ANY outgoing request.
                     val uri = Uri.withAppendedPath(ContactsContract.PhoneLookup.CONTENT_FILTER_URI, Uri.encode(number))
                     val cursor = context.contentResolver.query(uri, arrayOf(ContactsContract.PhoneLookup.DISPLAY_NAME), null, null, null)
-                        ?: return@launch
+                        ?: return@lookup
                     cursor.use {
                         if (it.moveToFirst()) {
                             contacts[number] = CallerLabel(it.getString(0), "contact")
                             resolvedLocally.add(number)
                             revision.update { n -> n + 1 }
-                            return@launch
+                            return@lookup
                         }
                         contacts.remove(number)
                     }
                     local(number)
                     if (!CallerPolicy.mayLookup(number in resolvedLocally, contacts.containsKey(number),
-                            value("custom:$number").isNotBlank(), option("online")) || epoch != generation) return@launch
-                    supervisorScope {
-                        listOf("google", "ipqs").forEach { provider -> launch {
+                            value("custom:$number").isNotBlank(), option("online")) || epoch != generation) return@lookup
+                    parallelProviders providerTask@{ provider ->
                             val providerVersion = providerVersions[provider] ?: 0
-                            if (!option(provider) || epoch != generation) return@launch
+                            if (!CallerPolicy.providerMayLookup(option(provider), option("verified:$provider"), epoch, generation)) return@providerTask
                             val cached = results["$provider:$number"]
-                            if (provider == "ipqs" && !refresh && cached?.cacheable == true && cached.expires > System.currentTimeMillis()) return@launch
+                            if (provider == "ipqs" && !refresh && cached?.cacheable == true && cached.expires > System.currentTimeMillis()) return@providerTask
                             try {
-                                val data = request("/v1/identify", buildJsonObject {
-                                    put("number", number); put("provider", provider); put("enabled", true); put("refresh", refresh)
-                                }, "$provider:$number", epoch, provider, providerVersion)
+                                providerJobs["$provider:$number"] = coroutineContext[Job]!!
+                                val secret = secrets.read(provider)
+                                ensureActive()
+                                if (!option(provider) || epoch != generation || providerVersion != (providerVersions[provider] ?: 0)) return@providerTask
+                                val data = direct.lookup(provider, secret, number, ::normalize)
                                 synchronized(this@CallerIdentification) {
                                 if (!CallerPolicy.acceptsResult(epoch, generation, providerVersion,
-                                        providerVersions[provider] ?: 0, option(provider), option("online"))) return@launch
+                                        providerVersions[provider] ?: 0, option(provider), option("online"))) return@providerTask
+                                statuses[provider] = ProviderStatus.CONFIGURED
                                 require(data["number"]?.jsonPrimitive?.content == number)
                                 require(data["provider"]?.jsonPrimitive?.content == provider)
                                 val ttl = (data["ttlSeconds"]?.jsonPrimitive?.longOrNull ?: 0).coerceIn(0, 86400)
@@ -221,8 +280,17 @@ class CallerIdentification(private val context: Context) {
                                 expireLater("$provider:$number", expires)
                                 }
                             } catch (e: CancellationException) { throw e }
-                            catch (_: Exception) { /* Isolated provider failure. Never affects calls/audio. */ }
-                        } }
+                            catch (e: Exception) {
+                                synchronized(this@CallerIdentification) {
+                                    if (epoch == generation && providerVersion == (providerVersions[provider] ?: 0)) {
+                                        val state = (e as? ProviderFailure)?.status ?: ProviderStatus.ERROR
+                                        statuses[provider] = state
+                                        if (state in listOf(ProviderStatus.INVALID_KEY, ProviderStatus.API_DISABLED, ProviderStatus.BILLING, ProviderStatus.RESTRICTION))
+                                            storage.edit { putBoolean("verified:$provider", false) }
+                                        revision.update { it + 1 }
+                                    }
+                                }
+                            } finally { providerJobs.remove("$provider:$number", coroutineContext[Job]) }
                     }
                 } catch (e: CancellationException) { throw e }
                 catch (_: Exception) { /* Fail closed if contacts are unavailable. */ }
@@ -231,21 +299,10 @@ class CallerIdentification(private val context: Context) {
                         lookupStates[number] = R.string.caller_search_finished
                         revision.update { it + 1 }
                     }
-                    synchronized(pending) { if (pending[key] == coroutineContext[Job]) pending.remove(key) }
                 }
             }
-            pending[key] = job
-            job.start()
-        }
     }
 
-    suspend fun verify(): String = withContext(Dispatchers.IO) {
-        val data = request("/v1/status", null, "status", generation)
-        val available = data["providers"]?.jsonArray?.map { it.jsonPrimitive.content }.orEmpty()
-        require(available.all { it in listOf("google", "ipqs") })
-        configure("available", available.joinToString(","))
-        available.joinToString(", ")
-    }
     private fun expireLater(key: String, expires: Long) {
         scope.launch {
             delay((expires - System.currentTimeMillis()).coerceAtLeast(0))
@@ -256,38 +313,6 @@ class CallerIdentification(private val context: Context) {
                 }
             }
         }
-    }
-    private fun request(path: String, body: JsonObject?, key: String, epoch: Int, provider: String? = null, providerVersion: Int = 0): JsonObject {
-        check(epoch == generation)
-        val url = URL(value("proxy").trimEnd('/') + path)
-        require(url.protocol == "https" && url.userInfo == null && value("token").length >= 32)
-        val connection = url.openConnection() as HttpsURLConnection
-        connection.instanceFollowRedirects = false
-        connection.connectTimeout = 2000; connection.readTimeout = 4500
-        connection.setRequestProperty("Authorization", "Bearer ${value("token")}")
-        connections[key] = connection
-        try {
-            check(epoch == generation)
-            if (provider != null) check(option(provider) && option("online") && providerVersion == (providerVersions[provider] ?: 0))
-            if (body != null) {
-                connection.requestMethod = "POST"; connection.doOutput = true
-                connection.setRequestProperty("Content-Type", "application/json")
-                connection.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
-            }
-            check(connection.responseCode == 200)
-            val bytes = connection.inputStream.use { input ->
-                val output = java.io.ByteArrayOutputStream()
-                val buffer = ByteArray(4096)
-                while (output.size() <= 65536) {
-                    val count = input.read(buffer, 0, minOf(buffer.size, 65537 - output.size()))
-                    if (count < 0) break
-                    output.write(buffer, 0, count)
-                }
-                output.toByteArray()
-            }
-            require(bytes.size <= 65536)
-            return Json.parseToJsonElement(bytes.toString(Charsets.UTF_8)).jsonObject
-        } finally { connections.remove(key, connection); connection.disconnect() }
     }
     private fun decode(data: JsonObject, provider: String): CallerLabel {
         val name = data["name"]?.jsonPrimitive?.contentOrNull?.takeIf { it.isNotBlank() }?.take(160)

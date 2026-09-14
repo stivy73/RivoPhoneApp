@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import com.grinch.rivo4.R
 import com.grinch.rivo4.controller.identification.CallerIdentification
 import com.grinch.rivo4.controller.identification.CallerLabel
+import com.grinch.rivo4.controller.identification.ProviderStatus
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
@@ -102,12 +103,6 @@ private fun CallerEditor(initialNumber: String, onDismiss: () -> Unit) {
 fun CallerIdentificationScreen(navigator: DestinationsNavigator) {
     val repository = koinInject<CallerIdentification>()
     val revision by repository.revision.collectAsState()
-    val resources = androidx.compose.ui.platform.LocalResources.current
-    val scope = rememberCoroutineScope()
-    var proxy by remember { mutableStateOf(repository.value("proxy")) }
-    var token by remember { mutableStateOf(repository.value("token")) }
-    var message by remember { mutableStateOf("") }
-    var testing by remember { mutableStateOf(false) }
     var editNumber by remember { mutableStateOf<String?>(null) }
     var clear by remember { mutableStateOf(false) }
     Scaffold(topBar = {
@@ -119,29 +114,16 @@ fun CallerIdentificationScreen(navigator: DestinationsNavigator) {
     }) { padding ->
         Column(Modifier.padding(padding).padding(16.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(stringResource(R.string.caller_description))
-            listOf("online" to R.string.caller_online, "google" to R.string.caller_google,
-                "ipqs" to R.string.caller_ipqs, "spam" to R.string.caller_show_spam).forEach { (key, title) ->
-                val checked = remember(revision) { repository.option(key, key == "spam") }
-                val configured = key !in listOf("google", "ipqs") || repository.value("available").split(',').contains(key)
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(stringResource(title), modifier = Modifier.weight(1f))
-                    Switch(checked = checked, onCheckedChange = { repository.toggle(key, it) }, enabled = checked || configured)
-                }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(stringResource(R.string.caller_online), Modifier.weight(1f))
+                Switch(checked = remember(revision) { repository.option("online") }, onCheckedChange = { repository.toggle("online", it) })
             }
-            OutlinedTextField(proxy, { proxy = it }, label = { Text(stringResource(R.string.caller_proxy)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(token, { token = it }, label = { Text(stringResource(R.string.caller_token)) }, singleLine = true,
-                visualTransformation = PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth())
-            Button(enabled = !testing, onClick = {
-                repository.configure("proxy", proxy); repository.configure("token", token)
-                repository.configure("available", "")
-                testing = true
-                scope.launch {
-                    message = try { resources.getString(R.string.caller_connected, repository.verify()) }
-                        catch (_: Exception) { resources.getString(R.string.caller_connection_failed) }
-                    testing = false
-                }
-            }) { Text(stringResource(R.string.caller_verify)) }
-            Text(message)
+            ProviderCard("google", repository)
+            ProviderCard("ipqs", repository)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(stringResource(R.string.caller_show_spam), Modifier.weight(1f))
+                Switch(checked = remember(revision) { repository.option("spam", true) }, onCheckedChange = { repository.toggle("spam", it) })
+            }
             HorizontalDivider()
             Text(stringResource(R.string.caller_manage), style = MaterialTheme.typography.titleMedium)
             Button(onClick = { editNumber = "" }) { Text(stringResource(R.string.caller_add_custom)) }
@@ -156,4 +138,87 @@ fun CallerIdentificationScreen(navigator: DestinationsNavigator) {
         text = { Text(stringResource(R.string.caller_clear_confirm)) }, confirmButton = {
             TextButton(onClick = { repository.clearCache(); clear = false }) { Text(stringResource(R.string.caller_clear)) }
         }, dismissButton = { TextButton(onClick = { clear = false }) { Text(stringResource(R.string.action_cancel)) } })
+}
+
+@Composable
+private fun ProviderCard(provider: String, repository: CallerIdentification) {
+    val revision by repository.revision.collectAsState()
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var expanded by remember { mutableStateOf(false) }
+    // Deliberately not rememberSaveable: credentials never enter saved instance state.
+    var key by remember { mutableStateOf("") }
+    var remove by remember { mutableStateOf(false) }
+    var busy by remember { mutableStateOf(false) }
+    var localError by remember { mutableStateOf(false) }
+    val state = remember(revision) { repository.status(provider) }
+    LaunchedEffect(expanded) {
+        if (expanded) key = try { repository.apiKey(provider) } catch (_: Exception) { localError = true; "" }
+        else { key = "" }
+    }
+    val statusText = when (state) {
+        ProviderStatus.NOT_CONFIGURED -> R.string.api_not_configured
+        ProviderStatus.VERIFYING -> R.string.api_verifying
+        ProviderStatus.CONFIGURED -> R.string.api_configured
+        ProviderStatus.INVALID_KEY -> R.string.api_invalid
+        ProviderStatus.API_DISABLED -> R.string.api_disabled
+        ProviderStatus.BILLING -> R.string.api_billing
+        ProviderStatus.QUOTA -> R.string.api_quota
+        ProviderStatus.RESTRICTION -> R.string.api_restriction
+        ProviderStatus.TIMEOUT -> R.string.api_timeout
+        ProviderStatus.UNREACHABLE -> R.string.api_unreachable
+        ProviderStatus.ERROR -> R.string.api_error
+    }
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            TextButton(onClick = { expanded = !expanded }) {
+                Text(if (provider == "google") "Google Places" else "IPQualityScore", style = MaterialTheme.typography.titleMedium)
+            }
+            Text(stringResource(if (provider == "google") R.string.api_google_description else R.string.api_ipqs_description))
+            Text(stringResource(statusText), style = MaterialTheme.typography.bodyMedium)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(stringResource(if (provider == "google") R.string.caller_google else R.string.caller_ipqs), Modifier.weight(1f))
+                Switch(checked = remember(revision) { repository.option(provider) }, onCheckedChange = { repository.toggle(provider, it) }, enabled = !busy)
+            }
+            if (expanded) {
+                ProviderKeyInput(key, { key = it; localError = false },
+                    stringResource(if (provider == "google") R.string.api_google_key else R.string.api_ipqs_key), !busy)
+                Button(enabled = !busy && key.isNotBlank(), onClick = {
+                    busy = true
+                    scope.launch { try { repository.saveAndVerify(provider, key) } finally { busy = false } }
+                }) { Text(stringResource(R.string.api_verify)) }
+                TextButton(onClick = {
+                    if (!com.grinch.rivo4.controller.identification.ProviderLinks.open(context, provider))
+                        android.widget.Toast.makeText(context, R.string.api_no_browser, android.widget.Toast.LENGTH_LONG).show()
+                }) { Text(stringResource(R.string.api_get_key)) }
+                Text(stringResource(if (provider == "google") R.string.api_google_help else R.string.api_ipqs_help), style = MaterialTheme.typography.bodySmall)
+                Text(stringResource(R.string.api_storage_help), style = MaterialTheme.typography.bodySmall)
+                TextButton(enabled = !busy, onClick = { remove = true }) { Text(stringResource(R.string.api_remove)) }
+                if (localError) Text(stringResource(R.string.api_error))
+            }
+        }
+    }
+    if (remove) AlertDialog(onDismissRequest = { remove = false }, title = { Text(stringResource(R.string.api_remove)) },
+        text = { Text(stringResource(R.string.api_remove_confirm)) }, confirmButton = {
+            TextButton(onClick = {
+                remove = false; busy = true
+                scope.launch {
+                    try { repository.removeKey(provider); key = "" }
+                    catch (_: Exception) { localError = true }
+                    finally { busy = false }
+                }
+            }) { Text(stringResource(R.string.api_remove)) }
+        }, dismissButton = { TextButton(onClick = { remove = false }) { Text(stringResource(R.string.action_cancel)) } })
+}
+
+@Composable
+internal fun ProviderKeyInput(value: String, onValueChange: (String) -> Unit, label: String, enabled: Boolean) {
+    var visible by remember { mutableStateOf(false) }
+    OutlinedTextField(value, onValueChange, singleLine = true, enabled = enabled,
+        label = { Text(label) },
+        visualTransformation = if (visible) androidx.compose.ui.text.input.VisualTransformation.None else PasswordVisualTransformation(),
+        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(autoCorrectEnabled = false, keyboardType = androidx.compose.ui.text.input.KeyboardType.Password),
+        trailingIcon = { TextButton(onClick = { visible = !visible }) {
+            Text(stringResource(if (visible) R.string.api_hide else R.string.api_show))
+        } }, modifier = Modifier.fillMaxWidth())
 }

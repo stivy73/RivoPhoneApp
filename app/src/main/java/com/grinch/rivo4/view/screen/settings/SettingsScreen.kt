@@ -1,6 +1,8 @@
 package com.grinch.rivo4.view.screen.settings
 
 import com.grinch.rivo4.controller.util.RivoText
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -26,11 +28,14 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import com.grinch.rivo4.PATREON_URL
 import com.grinch.rivo4.PLAY_STORE_URL
 import com.grinch.rivo4.R
 import com.grinch.rivo4.controller.util.PreferenceManager
+import com.grinch.rivo4.controller.util.SettingsBackupCodec
+import com.grinch.rivo4.controller.util.SettingsBackupDocument
 import com.grinch.rivo4.controller.util.getAppVersion
 import com.grinch.rivo4.controller.util.openLink
 import com.grinch.rivo4.view.components.RivoDialog
@@ -39,6 +44,7 @@ import com.grinch.rivo4.view.components.RivoDivider
 import com.grinch.rivo4.view.components.RivoExpressiveCard
 import com.grinch.rivo4.view.components.RivoListItem
 import com.grinch.rivo4.view.components.RivoSwitchListItem
+import com.grinch.rivo4.view.components.RivoConfirmationDialog
 import com.grinch.rivo4.view.components.ad.IS_ADS_SUPPORTED
 import com.grinch.rivo4.view.theme.RivoMaterialShapes
 import com.grinch.rivo4.view.theme.rememberRivoMorphShape
@@ -47,6 +53,9 @@ import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.generated.destinations.*
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import org.koin.compose.koinInject
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Destination<RootGraph>
@@ -58,11 +67,64 @@ fun SettingsScreen(
     val prefs = koinInject<PreferenceManager>()
     val settingsState by prefs.settingsChanged.collectAsState()
     val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val resources = androidx.compose.ui.platform.LocalResources.current
     val appInfo = getAppVersion(context)
     val logoMorph = rememberRivoMorphShape(RivoMaterialShapes.Cookie12Sided, RivoMaterialShapes.Circle) { 0.2f }
 
     var enableAds by remember(settingsState) { mutableStateOf(prefs.getBoolean(PreferenceManager.KEY_ENABLE_ADS, true)) }
     var showDisableAdsDialog by remember { mutableStateOf(false) }
+    var settingsBackupBusy by remember { mutableStateOf(false) }
+    var pendingSettingsRestore by remember { mutableStateOf<SettingsBackupDocument?>(null) }
+
+    val exportSettingsLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        if (uri != null) {
+            settingsBackupBusy = true
+            scope.launch {
+                val count = withContext(Dispatchers.IO) {
+                    runCatching {
+                        val snapshot = prefs.settingsBackupSnapshot()
+                        val document = SettingsBackupCodec.encode(snapshot, context.packageName)
+                        context.contentResolver.openOutputStream(uri, "wt")?.bufferedWriter()?.use { writer ->
+                            writer.write(document)
+                        } ?: error("Cannot open destination")
+                        snapshot.size
+                    }.getOrNull()
+                }
+                settingsBackupBusy = false
+                snackbarHostState.showSnackbar(
+                    count?.let { resources.getString(R.string.settings_backup_preferences_exported, it) }
+                        ?: resources.getString(R.string.settings_backup_preferences_export_failed)
+                )
+            }
+        }
+    }
+
+    val importSettingsLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            settingsBackupBusy = true
+            scope.launch {
+                val document = withContext(Dispatchers.IO) {
+                    runCatching {
+                        val content = context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
+                            ?: error("Cannot open backup")
+                        SettingsBackupCodec.decode(content)
+                    }.getOrNull()
+                }
+                settingsBackupBusy = false
+                if (document == null) {
+                    snackbarHostState.showSnackbar(resources.getString(R.string.settings_backup_preferences_invalid))
+                } else {
+                    pendingSettingsRestore = document
+                }
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -75,6 +137,7 @@ fun SettingsScreen(
                 }
             )
         },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = MaterialTheme.colorScheme.surface
     ) { padding ->
         LazyColumn(
@@ -346,6 +409,35 @@ fun SettingsScreen(
             }
 
             item {
+                RivoExpressiveCard(
+                    title = stringResource(R.string.settings_backup_preferences_title),
+                    icon = Icons.Outlined.SettingsBackupRestore
+                ) {
+                    Text(
+                        text = stringResource(R.string.settings_backup_preferences_description),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                    )
+                    RivoListItem(
+                        headline = stringResource(R.string.settings_backup_preferences_export),
+                        supporting = stringResource(R.string.settings_backup_preferences_export_supporting),
+                        leadingIcon = Icons.Outlined.FileUpload,
+                        enabled = !settingsBackupBusy,
+                        onClick = { exportSettingsLauncher.launch("rivo_personal_settings.json") }
+                    )
+                    RivoDivider(Modifier.padding(horizontal = 16.dp))
+                    RivoListItem(
+                        headline = stringResource(R.string.settings_backup_preferences_restore),
+                        supporting = stringResource(R.string.settings_backup_preferences_restore_supporting),
+                        leadingIcon = Icons.Outlined.Restore,
+                        enabled = !settingsBackupBusy,
+                        onClick = { importSettingsLauncher.launch(arrayOf("application/json", "text/json", "text/plain")) }
+                    )
+                }
+            }
+
+            item {
                 Text(
                     text = stringResource(R.string.about_copyright),
                     style = MaterialTheme.typography.labelMedium,
@@ -395,6 +487,34 @@ fun SettingsScreen(
                     }
                 }
             }
+        }
+
+        pendingSettingsRestore?.let { backup ->
+            RivoConfirmationDialog(
+                onDismissRequest = { pendingSettingsRestore = null },
+                onConfirm = {
+                    pendingSettingsRestore = null
+                    settingsBackupBusy = true
+                    scope.launch {
+                        val restored = withContext(Dispatchers.IO) {
+                            runCatching { prefs.restoreSettingsBackup(backup.settings) }.getOrDefault(false)
+                        }
+                        settingsBackupBusy = false
+                        snackbarHostState.showSnackbar(
+                            if (restored) {
+                                resources.getString(R.string.settings_backup_preferences_restored, backup.settings.size)
+                            } else {
+                                resources.getString(R.string.settings_backup_preferences_restore_failed)
+                            }
+                        )
+                    }
+                },
+                title = stringResource(R.string.settings_backup_preferences_confirm_title),
+                message = stringResource(R.string.settings_backup_preferences_confirm_message, backup.settings.size),
+                confirmLabel = stringResource(R.string.settings_backup_preferences_restore),
+                dismissLabel = stringResource(R.string.action_cancel),
+                icon = Icons.Outlined.Restore
+            )
         }
     }
 }

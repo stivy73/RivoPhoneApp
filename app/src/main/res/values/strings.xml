@@ -437,6 +437,19 @@
     <string name="settings_backup_export_logs_supporting">Save history to a JSON file</string>
     <string name="settings_backup_import_logs">Import Call Logs</string>
     <string name="settings_backup_import_logs_supporting">Restore history from a JSON file</string>
+    <string name="settings_backup_preferences_title">Settings backup</string>
+    <string name="settings_backup_preferences_description">Save and restore Rivo Personal preferences. Contacts, call history, recordings, security codes and system permissions are not included.</string>
+    <string name="settings_backup_preferences_export">Back up settings</string>
+    <string name="settings_backup_preferences_export_supporting">Create a portable JSON settings file</string>
+    <string name="settings_backup_preferences_restore">Restore settings</string>
+    <string name="settings_backup_preferences_restore_supporting">Select a Rivo Personal settings backup</string>
+    <string name="settings_backup_preferences_exported">Backed up %1$d settings</string>
+    <string name="settings_backup_preferences_export_failed">Could not create the settings backup</string>
+    <string name="settings_backup_preferences_invalid">This is not a valid Rivo Personal settings backup</string>
+    <string name="settings_backup_preferences_confirm_title">Restore settings?</string>
+    <string name="settings_backup_preferences_confirm_message">This backup contains %1$d settings. Current restorable preferences will be replaced.</string>
+    <string name="settings_backup_preferences_restored">Restored %1$d settings</string>
+    <string name="settings_backup_preferences_restore_failed">Could not restore the settings</string>
 
     <!-- Settings > Manage contacts -->
     <string name="settings_manage_title">Manage Contacts</string>

@@ -1,3 +1,18 @@
+# Rivo Personal
+
+Personal modified fork of Rivo, with recording components forked from ShizuCallRecorder **1.3.3 (19)** at `dd940fe2caa8aa1b4c7143ad5123c9923b343abd`. scrcpy-server is pinned to **4.0**. This is a test edition, not an official upstream release.
+
+- Installable beside original Rivo: `it.stivy.rivo.personal.debug`; select **Rivo Personal** as the default phone app.
+- External prerequisite: running Shizuku with authorization granted to Rivo Personal. No ShizuCallRecorder installation is needed.
+- Languages: Italian and English. Recorder configuration: Settings → Call recording.
+- Download **Rivo-Personal-fossDebug** from [GitHub Actions](https://github.com/stivy73/RivoPhoneApp/actions/workflows/build.yaml); it includes the APK and SHA256 checksum.
+- [Build instructions](docs/BUILD_AND_VALIDATION.md), [architecture and exact provenance](docs/RECORDER_ARCHITECTURE.md), [licenses and attribution](THIRD_PARTY_NOTICES.md), [OPPO hardware checklist](docs/OPPO_TEST_PLAN.md).
+- Two-sided OPPO capture remains **DA VERIFICARE** for this APK. The user's successful Shizu baseline is preserved; acoustic and ColorOS behavior require real calls.
+
+---
+
+## Original upstream README
+
 
 <div align="center">
 

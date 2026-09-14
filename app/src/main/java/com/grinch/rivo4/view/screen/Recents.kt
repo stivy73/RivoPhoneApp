@@ -28,14 +28,12 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.PermissionStatus
 import com.google.accompanist.permissions.rememberPermissionState
 import com.grinch.rivo4.R
-import com.grinch.rivo4.controller.CallRecorder
 import com.grinch.rivo4.controller.CallLogViewModel
 import com.grinch.rivo4.controller.util.formatDateHeader
 import com.grinch.rivo4.view.components.*
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.generated.destinations.ContactDetailsScreenDestination
-import com.ramcosta.composedestinations.generated.destinations.CallRecordingsScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.ContactEditScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.DialPadScreenDestination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
@@ -410,14 +408,6 @@ fun CallLogFullContent(
         val todayStats by viewModel.todayStats.collectAsState()
         val allContacts by contactsVM.allContacts.collectAsState()
         val context = LocalContext.current
-        val recordingsRevision by CallRecorder.recordingsChanged.collectAsState()
-        var recordingCount by remember { mutableIntStateOf(0) }
-
-        LaunchedEffect(recordingsRevision) {
-            recordingCount = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                CallRecorder.listRecordings(context).size
-            }
-        }
 
         val mergeFavorites = remember(settingsState) {
             prefs.getBoolean(com.grinch.rivo4.controller.util.PreferenceManager.KEY_MERGE_FAVORITES_RECENTS, true)
@@ -548,18 +538,6 @@ fun CallLogFullContent(
                                     },
                                     onHideStats = {
                                         prefs.setBoolean(com.grinch.rivo4.controller.util.PreferenceManager.KEY_SHOW_RECENTS_STATS, false)
-                                    },
-                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
-                                )
-                            }
-                        }
-
-                        if (selectedFilter == CallLogFilter.All) {
-                            item {
-                                SavedCallRecordingsCard(
-                                    recordingCount = recordingCount,
-                                    onClick = {
-                                        navigator.navigate(CallRecordingsScreenDestination(initialShowList = true))
                                     },
                                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
                                 )

@@ -147,16 +147,27 @@ Il backend storico non è utilizzato dall’app.
 - APK: `app/build/outputs/apk/foss/debug/RivoPhone-2.1-foss.apk`.
 - SHA256 APK: `199c371901ad0c6d6439925a409dd7bf3a10cffdb8c1ba2393b2907752a8a9bf`.
 
-## Feedback ricerca manuale
+## Ricerca manuale anche per contatti salvati
 
-I numeri già salvati nei Contatti Android non vengono inviati a Google, anche
-premendo la lente. Il dialog mostra il motivo e disabilita la ricerca online
-per contatti e nomi personalizzati. I lookup riportano esiti distinti: nessuna
-corrispondenza telefonica, attività trovata, provider disattivato, chiave da
-verificare, permesso Contatti mancante o errore specifico Google. Il messaggio
-generico “ricerca terminata” non viene più usato per una ricerca saltata.
+Durante una chiamata, un contatto Android o un nome personalizzato impedisce la
+ricerca automatica. Premendo esplicitamente Cerca / aggiorna, invece, la ricerca
+Google viene eseguita anche se esiste un nome locale. Gli interruttori online e
+Google, la verifica della chiave e i controlli sui numeri restano obbligatori.
 
-Verifica del feedback: 75 unit test PASS, lintFossDebug PASS e assembleFossDebug
-PASS. Traduzione 1218/1218; firma locale invariata. APK SHA256:
-`f68c3b09bab7ca20561061bea9a4e8fa00c6e12a2e47b31030775cffdc39d92b`.
-UI sul telefono ancora da collaudare.
+Il risultato Google appare separato dal nome locale e non lo sostituisce nella
+schermata chiamata o nella cronologia. Per un contatto salvato, Aggiorna nome in
+rubrica apre l’editor Rivo con il nome Google proposto e i dati del contatto.
+Il salvataggio richiede l’azione Salva dell’utente; Annulla conserva la rubrica.
+Il numero viene risolto nuovamente prima di aprire l’editor: nessun contatto viene
+scelto arbitrariamente se lo stesso numero appartiene a più contatti.
+
+Collaudo telefono: cercare manualmente un’attività già salvata, verificare risultato
+Google separato e attribuzione; aprire aggiornamento nome, annullare e controllare
+che la rubrica sia invariata; ripetere e salvare; verificare nome aggiornato,
+numeri/email conservati e nessuna richiesta automatica per i contatti salvati.
+
+Verifica ricerca manuale: 78 unit test PASS (incluse precedenze automatiche e
+richiesta esplicita), lintFossDebug PASS, assembleFossDebug PASS. Traduzione
+1222/1222; firma locale invariata. APK SHA256:
+`83444d2b5f22538d18df24784ff638b7193ac08170ab7c9204df2c44797f3c90`.
+Collaudo sul telefono della ricerca e del salvataggio in rubrica: da eseguire.

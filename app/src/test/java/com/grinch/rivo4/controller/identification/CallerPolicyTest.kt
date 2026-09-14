@@ -48,4 +48,17 @@ class CallerPolicyTest {
         assertTrue(CallerPolicy.acceptsResult(1, 1, 0, 0, true, true))
     }
 
+    @Test fun explicitSearchMayLookupSavedContactWithoutChangingDisplayPriority() {
+        assertTrue(CallerPolicy.mayLookup(true, true, false, true, userRequested = true))
+        val saved = CallerLabel("Saved name", "contact")
+        assertEquals(saved, select(contact = saved))
+    }
+    @Test fun explicitSearchMayCompareCustomName() {
+        assertTrue(CallerPolicy.mayLookup(true, false, true, true, userRequested = true))
+        assertEquals("Private name", select(custom = "Private name")?.name)
+    }
+    @Test fun explicitSearchStillHonorsOnlineSwitchAndContactPermission() {
+        assertFalse(CallerPolicy.mayLookup(true, true, false, false, userRequested = true))
+        assertFalse(CallerPolicy.mayLookup(false, true, false, true, userRequested = true))
+    }
 }

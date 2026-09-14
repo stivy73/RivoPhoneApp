@@ -81,7 +81,9 @@ fun ContactEditScreen(
         if (contactId != null && contactId != "0" && contactId != "null") {
             val existing = contactsVM.getFullContactById(contactId)
             if (existing != null) {
-                val split = if (!existing.givenName.isNullOrBlank() || !existing.familyName.isNullOrBlank()) {
+                val split = if (!initialName.isNullOrBlank()) {
+                    splitDisplayName(initialName)
+                } else if (!existing.givenName.isNullOrBlank() || !existing.familyName.isNullOrBlank()) {
                     (existing.givenName ?: "") to (existing.familyName ?: "")
                 } else {
                     splitDisplayName(existing.name)

@@ -63,15 +63,18 @@ private fun CallerEditor(initialNumber: String, onDismiss: () -> Unit) {
     var number by remember { mutableStateOf(initialNumber) }
     var name by remember { mutableStateOf(repository.customNames()[repository.normalize(initialNumber)].orEmpty()) }
     var invalid by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    var openingContact by remember { mutableStateOf(false) }
     val label = rememberCallerLabel(number)
     val revision by repository.revision.collectAsState()
     val lookupState = remember(number, revision) { repository.lookupState(number) }
+    val candidate = remember(number, revision) { repository.googleCandidate(number) }
     AlertDialog(onDismissRequest = onDismiss, title = { Text(stringResource(R.string.caller_actions)) }, text = {
         Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedTextField(number, { number = it }, label = { Text(stringResource(R.string.caller_number)) }, singleLine = true)
             Text(repository.display(label) ?: number)
             CallerProvenance(label)
-            val feedback = when (label?.source) {
+            val feedback = lookupState ?: when (label?.source) {
                 "contact" -> R.string.caller_search_contact
                 "custom" -> R.string.caller_search_custom
                 else -> lookupState
@@ -79,8 +82,31 @@ private fun CallerEditor(initialNumber: String, onDismiss: () -> Unit) {
             feedback?.let { Text(stringResource(it), style = MaterialTheme.typography.bodySmall) }
             OutlinedTextField(name, { name = it }, label = { Text(stringResource(R.string.caller_custom)) }, singleLine = true)
             if (invalid) Text(stringResource(R.string.caller_invalid))
-            TextButton(onClick = { repository.identify(number, refresh = true) }, enabled = repository.option("online") && label?.source !in listOf("contact", "custom")) {
+            TextButton(onClick = { repository.identify(number, refresh = true) }, enabled = repository.option("online") && repository.option("google") && lookupState != R.string.caller_searching) {
                 Text(stringResource(R.string.caller_refresh))
+            }
+            if (candidate?.name != null && label?.source in listOf("contact", "custom")) {
+                HorizontalDivider()
+                Text(stringResource(R.string.caller_google_result), style = MaterialTheme.typography.titleSmall)
+                Text(candidate.name)
+                CallerProvenance(candidate)
+                if (label?.source == "contact") {
+                    TextButton(enabled = !openingContact, onClick = {
+                        val selectedNumber = number
+                        val proposedName = candidate.name
+                        openingContact = true
+                        scope.launch {
+                            try {
+                                val intent = repository.contactEditIntent(selectedNumber, proposedName)
+                                if (intent != null) { context.startActivity(intent); onDismiss() }
+                                else android.widget.Toast.makeText(context, R.string.caller_edit_unavailable, android.widget.Toast.LENGTH_LONG).show()
+                            } catch (_: Exception) {
+                                android.widget.Toast.makeText(context, R.string.caller_edit_unavailable, android.widget.Toast.LENGTH_LONG).show()
+                            } finally { openingContact = false }
+                        }
+                    }) { Text(stringResource(R.string.caller_update_contact)) }
+                    Text(stringResource(R.string.caller_update_review), style = MaterialTheme.typography.bodySmall)
+                }
             }
             TextButton(onClick = { if (repository.setCustom(number, "")) { name = "" } else invalid = true }) {
                 Text(stringResource(R.string.caller_remove_custom))

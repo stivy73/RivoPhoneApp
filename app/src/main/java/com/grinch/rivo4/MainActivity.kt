@@ -302,7 +302,9 @@ class MainActivity : androidx.fragment.app.FragmentActivity() {
             Intent.ACTION_EDIT -> {
                 val id = data?.lastPathSegment
                 if (id != null) {
-                    navController.navigate(ContactEditScreenDestination(contactId = id).route)
+                    navController.navigate(ContactEditScreenDestination(
+                        contactId = id, initialName = intent.getStringExtra(ContactsContract.Intents.Insert.NAME)
+                    ).route)
                 }
             }
         }

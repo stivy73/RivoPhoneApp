@@ -178,6 +178,29 @@ class CallerIdentification(private val context: Context) {
         return CallerPolicy.select(contacts[number], value("custom:$number"), option("online"),
             option("google"), results["google:$number"], System.currentTimeMillis())
     }
+    /** Separate candidate for explicit review; never overrides Android contact display. */
+    @Synchronized fun googleCandidate(raw: String): CallerLabel? = normalize(raw)?.let { number ->
+        CallerPolicy.select(null, null, option("online"), option("google"),
+            results["google:$number"], System.currentTimeMillis())
+    }
+
+    /** Resolve the current number again; do not choose arbitrarily between shared contacts. */
+    suspend fun contactEditIntent(raw: String, proposedName: String): android.content.Intent? = withContext(Dispatchers.IO) {
+        countryReady.await()
+        val number = normalize(raw) ?: return@withContext null
+        val uri = Uri.withAppendedPath(ContactsContract.PhoneLookup.CONTENT_FILTER_URI, Uri.encode(number))
+        val ids = mutableSetOf<Long>()
+        context.contentResolver.query(uri, arrayOf(ContactsContract.PhoneLookup._ID), null, null, null)?.use { cursor ->
+            while (cursor.moveToNext()) ids += cursor.getLong(0)
+        }
+        val id = ids.singleOrNull() ?: return@withContext null
+        android.content.Intent(context, com.grinch.rivo4.MainActivity::class.java).apply {
+            action = android.content.Intent.ACTION_EDIT
+            data = android.content.ContentUris.withAppendedId(ContactsContract.Contacts.CONTENT_URI, id)
+            putExtra(ContactsContract.Intents.Insert.NAME, proposedName)
+        }
+    }
+
     fun display(label: CallerLabel?): String? = label?.name
     fun source(label: CallerLabel?): String = when (label?.source) {
         "contact" -> context.getString(R.string.caller_contact)
@@ -239,21 +262,20 @@ class CallerIdentification(private val context: Context) {
                             outcome = R.string.caller_search_contact
                             resolvedLocally.add(number)
                             revision.update { n -> n + 1 }
-                            return@lookup
-                        }
-                        contacts.remove(number)
+                            if (!refresh) return@lookup
+                        } else contacts.remove(number)
                     }
                     local(number)
                     outcome = when {
                         number !in resolvedLocally -> R.string.caller_search_contacts_unavailable
-                        contacts.containsKey(number) -> R.string.caller_search_contact
-                        value("custom:$number").isNotBlank() -> R.string.caller_search_custom
+                        contacts.containsKey(number) && !refresh -> R.string.caller_search_contact
+                        value("custom:$number").isNotBlank() && !refresh -> R.string.caller_search_custom
                         !option("online") || !option("google") -> R.string.caller_search_disabled
                         !option("verified:google") -> R.string.caller_search_unverified
                         else -> R.string.caller_search_cancelled
                     }
                     if (!CallerPolicy.mayLookup(number in resolvedLocally, contacts.containsKey(number),
-                            value("custom:$number").isNotBlank(), option("online")) || epoch != generation) return@lookup
+                            value("custom:$number").isNotBlank(), option("online"), userRequested = refresh) || epoch != generation) return@lookup
                     googleProvider providerTask@{ provider ->
                             val providerVersion = providerVersions[provider] ?: 0
                             if (!CallerPolicy.providerMayLookup(option(provider), option("verified:$provider"), epoch, generation)) return@providerTask

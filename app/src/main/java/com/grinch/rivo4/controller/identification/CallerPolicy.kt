@@ -5,8 +5,8 @@ object CallerPolicy {
     fun providerMayLookup(enabled: Boolean, verifiedKey: Boolean, epoch: Int, currentEpoch: Int) =
         enabled && verifiedKey && epoch == currentEpoch
 
-    fun mayLookup(contactLookupSucceeded: Boolean, hasContact: Boolean, hasCustom: Boolean, online: Boolean) =
-        contactLookupSucceeded && !hasContact && !hasCustom && online
+    fun mayLookup(contactLookupSucceeded: Boolean, hasContact: Boolean, hasCustom: Boolean, online: Boolean, userRequested: Boolean = false) =
+        contactLookupSucceeded && online && (userRequested || (!hasContact && !hasCustom))
 
     fun acceptsResult(requestEpoch: Int, currentEpoch: Int, requestProviderVersion: Int,
         currentProviderVersion: Int, enabled: Boolean, online: Boolean) =

@@ -1309,12 +1309,16 @@
     <string name="api_remove_confirm">Remove this key and disable the provider? Your custom names will be kept.</string>
     <string name="api_google_help">1. Create or select a Google Cloud project\n2. Activate billing\n3. Enable Places API (New)\n4. Create an API key\n5. Paste it here\nVerification requests only a place ID; phone searches may incur charges. Restrict the key to Places API (New) and your Android app.</string>
     <string name="api_storage_help">Personal keys are encrypted on this device and excluded from backups. Only the selected provider receives its key.</string>
-    <string name="caller_search_contact">This number is already in Android Contacts. The saved contact takes priority: no Google search was performed.</string>
-    <string name="caller_search_custom">A custom name is present. Remove it to search this number on Google Places.</string>
+    <string name="caller_search_contact">Number saved in contacts: no automatic search. Tap Search / refresh to compare its name with Google Places.</string>
+    <string name="caller_search_custom">The custom name keeps priority. You can manually search for a Google Places result.</string>
     <string name="caller_search_contacts_unavailable">Unable to check contacts. No online search was performed: check the Contacts permission.</string>
     <string name="caller_search_disabled">Online search is disabled. Enable online identification and Google Places in settings.</string>
     <string name="caller_search_unverified">Verify the Google Places key in settings first.</string>
     <string name="caller_search_cancelled">Search interrupted. You can try again.</string>
     <string name="caller_search_found">Business found on Google Places with a matching phone number.</string>
     <string name="caller_search_no_match">Google Places returned no business with a matching phone number.</string>
+    <string name="caller_google_result">Google Places result</string>
+    <string name="caller_update_contact">Update name in contacts</string>
+    <string name="caller_update_review">The contact editor will open with the suggested name. Contacts will only change when you tap Save.</string>
+    <string name="caller_edit_unavailable">Unable to open a unique contact for this number. Open the contact from your address book to edit it.</string>
 </resources>

@@ -49,6 +49,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
@@ -81,6 +82,7 @@ import com.grinch.rivo4.view.theme.RivoMotion
 import com.grinch.rivo4.view.theme.rememberRivoMorph
 import com.grinch.rivo4.view.theme.rememberRivoMorphShape
 import com.grinch.rivo4.view.theme.rivoCornerDp
+import kotlinx.coroutines.delay
 
 data class MorphingPage(
     val icon: ImageVector,
@@ -146,13 +148,25 @@ fun MorphingOnboardingScreen(onFinished: () -> Unit) {
         }
     }
 
-    val essentialItems = remember(refreshTrigger) {
+    val essentialItems = remember(refreshTrigger, currentStage) {
         PermissionChecklistHelper.getEssentialItems(context)
     }
-    val recommendedItems = remember(refreshTrigger) {
+    val recommendedItems = remember(refreshTrigger, currentStage) {
         PermissionChecklistHelper.getRecommendedItems(context)
     }
     val allEssentialGranted = essentialItems.all { it.isGranted }
+
+    // ColorOS may complete the battery-optimization request without pausing this
+    // activity or delivering an Activity Result. Brief polling keeps the card in
+    // sync even when neither of the normal refresh callbacks is dispatched.
+    LaunchedEffect(currentStage) {
+        if (currentStage == STAGE_RECOMMENDED) {
+            repeat(10) {
+                delay(500)
+                refreshTrigger++
+            }
+        }
+    }
 
     // Activity result launchers for permissions & intents
     val roleLauncher = rememberLauncherForActivityResult(

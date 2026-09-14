@@ -216,10 +216,17 @@ object PermissionChecklistHelper {
     }
 
     fun getBatteryOptimizationIntent(context: Context): Intent {
-        return Intent(
+        val directRequest = Intent(
             Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
             Uri.parse("package:${context.packageName}")
         )
+        if (directRequest.resolveActivity(context.packageManager) != null) {
+            return directRequest
+        }
+
+        // Some OEM builds omit the per-app consent activity. In that case, keep
+        // the button useful by opening the system battery-optimization list.
+        return Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
     }
 
     fun getAppSettingsIntent(context: Context): Intent {

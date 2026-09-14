@@ -293,6 +293,74 @@ fun BlockedNumbersScreen(
                 }
             }
 
+            item {
+                RivoExpressiveCard {
+                    RivoSelectListItem(
+                        headline = stringResource(R.string.settings_blocked_method),
+                        supporting = stringResource(R.string.settings_blocked_method_supporting),
+                        leadingIcon = Icons.Outlined.Gavel,
+                        options = listOf(
+                            stringResource(R.string.settings_blocked_method_decline) to 0,
+                            stringResource(R.string.settings_blocked_method_silent) to 1
+                        ),
+                        selectedValue = blockMethod,
+                        onValueChange = {
+                            blockMethod = it
+                            prefs.setInt(PreferenceManager.KEY_BLOCK_METHOD, it)
+                        }
+                    )
+                    HorizontalDivider(Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                    RivoSelectListItem(
+                        headline = stringResource(R.string.settings_blocked_log_visibility),
+                        supporting = stringResource(R.string.settings_blocked_log_visibility_supporting),
+                        leadingIcon = Icons.Outlined.Visibility,
+                        options = listOf(
+                            stringResource(R.string.settings_blocked_log_hide) to 0,
+                            stringResource(R.string.settings_blocked_log_show) to 1
+                        ),
+                        selectedValue = logVisibility,
+                        onValueChange = {
+                            logVisibility = it
+                            prefs.setInt(PreferenceManager.KEY_BLOCK_LOG_VISIBILITY, it)
+                        }
+                    )
+                }
+            }
+
+            item {
+                RivoExpressiveCard {
+                    RivoSwitchListItem(
+                        headline = stringResource(R.string.settings_blocked_notifications),
+                        supporting = stringResource(R.string.settings_blocked_notifications_supporting),
+                        leadingIcon = Icons.Outlined.NotificationsPaused,
+                        checked = blockNotification,
+                        onCheckedChange = {
+                            blockNotification = it
+                            prefs.setBoolean(PreferenceManager.KEY_BLOCK_NOTIFICATION, it)
+                        }
+                    )
+                }
+            }
+
+            item {
+                OutlinedButton(
+                    onClick = {
+                        val telecomManager = context.getSystemService(Context.TELECOM_SERVICE) as TelecomManager
+                        try {
+                            val intent = telecomManager.createManageBlockedNumbersIntent()
+                            context.startActivity(intent)
+                        } catch (_: Exception) {
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.large
+                ) {
+                    Icon(Icons.AutoMirrored.Outlined.List, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(R.string.settings_blocked_system_button))
+                }
+            }
+
             if (blockedNumbers.isNotEmpty()) {
                 item {
                     OutlinedTextField(
@@ -393,74 +461,6 @@ fun BlockedNumbersScreen(
                             }
                         }
                     }
-                }
-            }
-
-            item {
-                RivoExpressiveCard {
-                    RivoSelectListItem(
-                        headline = stringResource(R.string.settings_blocked_method),
-                        supporting = stringResource(R.string.settings_blocked_method_supporting),
-                        leadingIcon = Icons.Outlined.Gavel,
-                        options = listOf(
-                            stringResource(R.string.settings_blocked_method_decline) to 0,
-                            stringResource(R.string.settings_blocked_method_silent) to 1
-                        ),
-                        selectedValue = blockMethod,
-                        onValueChange = {
-                            blockMethod = it
-                            prefs.setInt(PreferenceManager.KEY_BLOCK_METHOD, it)
-                        }
-                    )
-                    HorizontalDivider(Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                    RivoSelectListItem(
-                        headline = stringResource(R.string.settings_blocked_log_visibility),
-                        supporting = stringResource(R.string.settings_blocked_log_visibility_supporting),
-                        leadingIcon = Icons.Outlined.Visibility,
-                        options = listOf(
-                            stringResource(R.string.settings_blocked_log_hide) to 0,
-                            stringResource(R.string.settings_blocked_log_show) to 1
-                        ),
-                        selectedValue = logVisibility,
-                        onValueChange = {
-                            logVisibility = it
-                            prefs.setInt(PreferenceManager.KEY_BLOCK_LOG_VISIBILITY, it)
-                        }
-                    )
-                }
-            }
-
-            item {
-                RivoExpressiveCard {
-                    RivoSwitchListItem(
-                        headline = stringResource(R.string.settings_blocked_notifications),
-                        supporting = stringResource(R.string.settings_blocked_notifications_supporting),
-                        leadingIcon = Icons.Outlined.NotificationsPaused,
-                        checked = blockNotification,
-                        onCheckedChange = {
-                            blockNotification = it
-                            prefs.setBoolean(PreferenceManager.KEY_BLOCK_NOTIFICATION, it)
-                        }
-                    )
-                }
-            }
-
-            item {
-                OutlinedButton(
-                    onClick = {
-                        val telecomManager = context.getSystemService(Context.TELECOM_SERVICE) as TelecomManager
-                        try {
-                            val intent = telecomManager.createManageBlockedNumbersIntent()
-                            context.startActivity(intent)
-                        } catch (_: Exception) {
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.large
-                ) {
-                    Icon(Icons.AutoMirrored.Outlined.List, contentDescription = null)
-                    Spacer(Modifier.width(8.dp))
-                    Text(stringResource(R.string.settings_blocked_system_button))
                 }
             }
 

@@ -9,11 +9,15 @@ import org.junit.After
 import org.junit.Test
 import java.io.File
 
-/** Uses the test APK context: never reads/replaces personal keys belonging to the installed app. */
+/** Uses an isolated temporary directory: never reads/replaces personal provider secrets. */
 class ProviderSecretsTest {
-    private val context = InstrumentationRegistry.getInstrumentation().context
+    private val target = InstrumentationRegistry.getInstrumentation().targetContext
+    private val testDirectory = File(target.noBackupFilesDir, "provider_tests_" + java.util.UUID.randomUUID()).apply { mkdirs() }
+    private val context = object : ContextWrapper(target) {
+        override fun getNoBackupFilesDir(): File = testDirectory
+    }
     private val secrets = ProviderSecrets(context)
-    @After fun cleanup() { secrets.remove("google"); secrets.remove("ipqs") }
+    @After fun cleanup() { testDirectory.deleteRecursively() }
     @Test fun googleKeyRoundTripEncryptedOutsideBackup() {
         secrets.save("google", "test-only-google-secret")
         assertEquals("test-only-google-secret", secrets.read("google"))

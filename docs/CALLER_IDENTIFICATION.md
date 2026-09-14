@@ -104,7 +104,7 @@ Restano eseguiti anche i test preesistenti di recorder, stream e backup impostaz
 
 Test strumentali `ProviderSecretsTest`: cifratura reale Keystore, lettura dopo
 ricreazione store, rimozione indipendente, tampering, IV casuali e Intent browser.
-Usano il contesto APK di test e non sovrascrivono le chiavi personali. Da eseguire
+Usano una directory temporanea isolata e non sovrascrivono le chiavi personali. Da eseguire
 su dispositivo/emulatore con `:app:connectedFossDebugAndroidTest`.
 
 | Test hardware/account reale | Stato |

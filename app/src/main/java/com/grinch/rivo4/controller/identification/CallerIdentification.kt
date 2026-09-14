@@ -220,11 +220,15 @@ class CallerIdentification(private val context: Context) {
         val key = "lookup:$number"
         val epoch = generation
         pending.start(key) lookup@{
+                var outcome = R.string.caller_search_contacts_unavailable
                 lookupStates[number] = R.string.caller_searching
                 revision.update { it + 1 }
                 try {
                     @Suppress("DEPRECATION")
-                    if (PhoneNumberUtils.isEmergencyNumber(raw)) return@lookup
+                    if (PhoneNumberUtils.isEmergencyNumber(raw)) {
+                        outcome = R.string.caller_invalid
+                        return@lookup
+                    }
                     // A fresh Android lookup is mandatory before ANY outgoing request.
                     val uri = Uri.withAppendedPath(ContactsContract.PhoneLookup.CONTENT_FILTER_URI, Uri.encode(number))
                     val cursor = context.contentResolver.query(uri, arrayOf(ContactsContract.PhoneLookup.DISPLAY_NAME), null, null, null)
@@ -232,6 +236,7 @@ class CallerIdentification(private val context: Context) {
                     cursor.use {
                         if (it.moveToFirst()) {
                             contacts[number] = CallerLabel(it.getString(0), "contact")
+                            outcome = R.string.caller_search_contact
                             resolvedLocally.add(number)
                             revision.update { n -> n + 1 }
                             return@lookup
@@ -239,6 +244,14 @@ class CallerIdentification(private val context: Context) {
                         contacts.remove(number)
                     }
                     local(number)
+                    outcome = when {
+                        number !in resolvedLocally -> R.string.caller_search_contacts_unavailable
+                        contacts.containsKey(number) -> R.string.caller_search_contact
+                        value("custom:$number").isNotBlank() -> R.string.caller_search_custom
+                        !option("online") || !option("google") -> R.string.caller_search_disabled
+                        !option("verified:google") -> R.string.caller_search_unverified
+                        else -> R.string.caller_search_cancelled
+                    }
                     if (!CallerPolicy.mayLookup(number in resolvedLocally, contacts.containsKey(number),
                             value("custom:$number").isNotBlank(), option("online")) || epoch != generation) return@lookup
                     googleProvider providerTask@{ provider ->
@@ -259,7 +272,9 @@ class CallerIdentification(private val context: Context) {
                                 val expires = System.currentTimeMillis() + 300000L
                                 val stored = JsonObject(data + ("expires" to JsonPrimitive(expires)))
                                 if (results.size >= 1000) results.keys.firstOrNull()?.let { results.remove(it) }
-                                results["$provider:$number"] = decode(stored, provider)
+                                val label = decode(stored, provider)
+                                results["$provider:$number"] = label
+                                outcome = if (label.name != null) R.string.caller_search_found else R.string.caller_search_no_match
                                 revision.update { n -> n + 1 }
                                 expireLater("$provider:$number", expires)
                                 }
@@ -269,6 +284,7 @@ class CallerIdentification(private val context: Context) {
                                     if (epoch == generation && providerVersion == (providerVersions[provider] ?: 0)) {
                                         val state = (e as? ProviderFailure)?.status ?: ProviderStatus.ERROR
                                         statuses[provider] = state
+                                        outcome = state.messageResource()
                                         if (state in listOf(ProviderStatus.INVALID_KEY, ProviderStatus.API_DISABLED, ProviderStatus.BILLING, ProviderStatus.RESTRICTION))
                                             storage.edit { putBoolean("verified:$provider", false) }
                                         revision.update { it + 1 }
@@ -280,7 +296,7 @@ class CallerIdentification(private val context: Context) {
                 catch (_: Exception) { /* Fail closed if contacts are unavailable. */ }
                 finally {
                     if (epoch == generation) {
-                        lookupStates[number] = R.string.caller_search_finished
+                        lookupStates[number] = outcome
                         revision.update { it + 1 }
                     }
                 }

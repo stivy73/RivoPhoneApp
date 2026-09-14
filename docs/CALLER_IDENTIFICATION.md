@@ -146,3 +146,17 @@ Il backend storico non è utilizzato dall’app.
 - Package: `it.stivy.rivo.personal.debug`; certificato locale invariato rispetto alla baseline.
 - APK: `app/build/outputs/apk/foss/debug/RivoPhone-2.1-foss.apk`.
 - SHA256 APK: `199c371901ad0c6d6439925a409dd7bf3a10cffdb8c1ba2393b2907752a8a9bf`.
+
+## Feedback ricerca manuale
+
+I numeri già salvati nei Contatti Android non vengono inviati a Google, anche
+premendo la lente. Il dialog mostra il motivo e disabilita la ricerca online
+per contatti e nomi personalizzati. I lookup riportano esiti distinti: nessuna
+corrispondenza telefonica, attività trovata, provider disattivato, chiave da
+verificare, permesso Contatti mancante o errore specifico Google. Il messaggio
+generico “ricerca terminata” non viene più usato per una ricerca saltata.
+
+Verifica del feedback: 75 unit test PASS, lintFossDebug PASS e assembleFossDebug
+PASS. Traduzione 1218/1218; firma locale invariata. APK SHA256:
+`f68c3b09bab7ca20561061bea9a4e8fa00c6e12a2e47b31030775cffdc39d92b`.
+UI sul telefono ancora da collaudare.

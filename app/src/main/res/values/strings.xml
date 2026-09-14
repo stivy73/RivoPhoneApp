@@ -1286,8 +1286,7 @@
     <string name="caller_clear_confirm">Clear online results? Custom names will be kept.</string>
     <string name="caller_google_policy">Google Maps names are temporary and are not saved to history permanently. Custom names stay private on this device.</string>
     <string name="caller_settings_summary">Online providers, personal API keys and private names</string>
-    <string name="caller_searching">Searching selected providers…</string>
-    <string name="caller_search_finished">Search finished. If no name appears, no identification is available or the service is unreachable.</string>
+    <string name="caller_searching">Checking number…</string>
     <string name="api_not_configured">Not configured</string>
     <string name="api_verifying">Verifying…</string>
     <string name="api_configured">Configured</string>
@@ -1310,4 +1309,12 @@
     <string name="api_remove_confirm">Remove this key and disable the provider? Your custom names will be kept.</string>
     <string name="api_google_help">1. Create or select a Google Cloud project\n2. Activate billing\n3. Enable Places API (New)\n4. Create an API key\n5. Paste it here\nVerification requests only a place ID; phone searches may incur charges. Restrict the key to Places API (New) and your Android app.</string>
     <string name="api_storage_help">Personal keys are encrypted on this device and excluded from backups. Only the selected provider receives its key.</string>
+    <string name="caller_search_contact">This number is already in Android Contacts. The saved contact takes priority: no Google search was performed.</string>
+    <string name="caller_search_custom">A custom name is present. Remove it to search this number on Google Places.</string>
+    <string name="caller_search_contacts_unavailable">Unable to check contacts. No online search was performed: check the Contacts permission.</string>
+    <string name="caller_search_disabled">Online search is disabled. Enable online identification and Google Places in settings.</string>
+    <string name="caller_search_unverified">Verify the Google Places key in settings first.</string>
+    <string name="caller_search_cancelled">Search interrupted. You can try again.</string>
+    <string name="caller_search_found">Business found on Google Places with a matching phone number.</string>
+    <string name="caller_search_no_match">Google Places returned no business with a matching phone number.</string>
 </resources>

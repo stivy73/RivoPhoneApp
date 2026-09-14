@@ -17,6 +17,7 @@ import com.grinch.rivo4.R
 import com.grinch.rivo4.controller.identification.CallerIdentification
 import com.grinch.rivo4.controller.identification.CallerLabel
 import com.grinch.rivo4.controller.identification.ProviderStatus
+import com.grinch.rivo4.controller.identification.messageResource
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
@@ -70,10 +71,15 @@ private fun CallerEditor(initialNumber: String, onDismiss: () -> Unit) {
             OutlinedTextField(number, { number = it }, label = { Text(stringResource(R.string.caller_number)) }, singleLine = true)
             Text(repository.display(label) ?: number)
             CallerProvenance(label)
-            lookupState?.let { Text(stringResource(it), style = MaterialTheme.typography.bodySmall) }
+            val feedback = when (label?.source) {
+                "contact" -> R.string.caller_search_contact
+                "custom" -> R.string.caller_search_custom
+                else -> lookupState
+            }
+            feedback?.let { Text(stringResource(it), style = MaterialTheme.typography.bodySmall) }
             OutlinedTextField(name, { name = it }, label = { Text(stringResource(R.string.caller_custom)) }, singleLine = true)
             if (invalid) Text(stringResource(R.string.caller_invalid))
-            TextButton(onClick = { repository.identify(number, refresh = true) }, enabled = repository.option("online")) {
+            TextButton(onClick = { repository.identify(number, refresh = true) }, enabled = repository.option("online") && label?.source !in listOf("contact", "custom")) {
                 Text(stringResource(R.string.caller_refresh))
             }
             TextButton(onClick = { if (repository.setCustom(number, "")) { name = "" } else invalid = true }) {
@@ -149,19 +155,7 @@ private fun ProviderCard(provider: String, repository: CallerIdentification) {
         if (expanded) key = try { repository.apiKey(provider) } catch (_: Exception) { localError = true; "" }
         else { key = "" }
     }
-    val statusText = when (state) {
-        ProviderStatus.NOT_CONFIGURED -> R.string.api_not_configured
-        ProviderStatus.VERIFYING -> R.string.api_verifying
-        ProviderStatus.CONFIGURED -> R.string.api_configured
-        ProviderStatus.INVALID_KEY -> R.string.api_invalid
-        ProviderStatus.API_DISABLED -> R.string.api_disabled
-        ProviderStatus.BILLING -> R.string.api_billing
-        ProviderStatus.QUOTA -> R.string.api_quota
-        ProviderStatus.RESTRICTION -> R.string.api_restriction
-        ProviderStatus.TIMEOUT -> R.string.api_timeout
-        ProviderStatus.UNREACHABLE -> R.string.api_unreachable
-        ProviderStatus.ERROR -> R.string.api_error
-    }
+    val statusText = state.messageResource()
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             TextButton(onClick = { expanded = !expanded }) {

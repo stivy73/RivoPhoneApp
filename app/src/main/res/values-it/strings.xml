@@ -1187,8 +1187,7 @@
     <string name="caller_clear_confirm">Cancellare i risultati online? I nomi personalizzati saranno conservati.</string>
     <string name="caller_google_policy">I nomi Google Maps sono temporanei e non vengono salvati stabilmente nella cronologia. I nomi personalizzati restano privati su questo dispositivo.</string>
     <string name="caller_settings_summary">Provider online, chiavi API personali e nomi privati</string>
-    <string name="caller_searching">Ricerca nei provider selezionati…</string>
-    <string name="caller_search_finished">Ricerca terminata. Se non compare un nome, non è disponibile un’identificazione oppure il servizio non è raggiungibile.</string>
+    <string name="caller_searching">Verifica del numero…</string>
     <string name="api_not_configured">Non configurato</string>
     <string name="api_verifying">Verifica in corso…</string>
     <string name="api_configured">Configurato</string>
@@ -1211,4 +1210,12 @@
     <string name="api_remove_confirm">Rimuovere la chiave e disabilitare il provider? I nomi personalizzati saranno conservati.</string>
     <string name="api_google_help">1. Crea o seleziona un progetto Google Cloud\n2. Attiva la fatturazione\n3. Abilita Places API (New)\n4. Crea una API key\n5. Incollala qui\nLa verifica richiede solo un ID luogo; le ricerche telefoniche possono avere un costo. Limita la chiave a Places API (New) e alla tua app Android.</string>
     <string name="api_storage_help">Le chiavi personali sono cifrate su questo dispositivo ed escluse dai backup. Ogni chiave viene inviata solo al relativo provider.</string>
+    <string name="caller_search_contact">Numero già presente nella rubrica Android. Il contatto salvato ha la precedenza: nessuna ricerca Google eseguita.</string>
+    <string name="caller_search_custom">È presente un nome personalizzato. Rimuovilo per cercare il numero su Google Places.</string>
+    <string name="caller_search_contacts_unavailable">Impossibile verificare la rubrica. Nessuna ricerca online eseguita: controlla il permesso Contatti.</string>
+    <string name="caller_search_disabled">Ricerca online disattivata. Attiva il riconoscimento online e Google Places nelle impostazioni.</string>
+    <string name="caller_search_unverified">Verifica prima la chiave Google Places nelle impostazioni.</string>
+    <string name="caller_search_cancelled">Ricerca interrotta. Puoi riprovare.</string>
+    <string name="caller_search_found">Attività trovata su Google Places con numero telefonico corrispondente.</string>
+    <string name="caller_search_no_match">Google Places non ha restituito un’attività con numero telefonico corrispondente.</string>
 </resources>

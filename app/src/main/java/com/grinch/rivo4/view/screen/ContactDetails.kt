@@ -266,9 +266,15 @@ fun ContactDetailsScreen(
     }
 
     val recordingsRevision by CallRecorder.recordingsChanged.collectAsState()
-    val contactRecordings = remember(fullContact, displayName, knownNumbers, recordingsRevision) {
+    var allRecordings by remember { mutableStateOf(emptyList<java.io.File>()) }
+    LaunchedEffect(recordingsRevision) {
+        allRecordings = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            CallRecorder.listRecordings(context)
+        }
+    }
+    val contactRecordings = remember(fullContact, displayName, knownNumbers, allRecordings) {
         RecordingFileMatcher.forContact(
-            recordings = CallRecorder.listRecordings(context),
+            recordings = allRecordings,
             displayName = displayName,
             phoneNumbers = knownNumbers
         )

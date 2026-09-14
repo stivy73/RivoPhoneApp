@@ -69,7 +69,12 @@ fun CallLogFullScreen(
     val selectedFilter by viewModel.selectedFilter.collectAsState()
     val context = LocalContext.current
     val recordingsRevision by CallRecorder.recordingsChanged.collectAsState()
-    val allRecordings = remember(recordingsRevision) { CallRecorder.listRecordings(context) }
+    var allRecordings by remember { mutableStateOf(emptyList<java.io.File>()) }
+    LaunchedEffect(recordingsRevision) {
+        allRecordings = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            CallRecorder.listRecordings(context)
+        }
+    }
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     

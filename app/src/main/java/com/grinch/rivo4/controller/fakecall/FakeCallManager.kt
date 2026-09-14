@@ -148,7 +148,7 @@ object FakeCallManager {
             saveSchedulesToPrefs(context, sortedList)
             updateScheduleNotification(context)
 
-            Log.i(TAG, "Scheduled fake call id=${schedule.id} from ${schedule.callerName} at $triggerAtMillis")
+            Log.i(TAG, "Fake call scheduled")
             return true
         } catch (e: Exception) {
             Log.e(TAG, "Failed to schedule fake call alarm: ${e.message}", e)

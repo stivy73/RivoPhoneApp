@@ -1,7 +1,7 @@
 name: Validate Rivo Personal FOSS
 on:
   push:
-    branches: [main, codex/shizu-recorder-it, codex/caller-identification]
+    branches: [main, codex/shizu-recorder-it, codex/caller-identification, codex/direct-provider-keys]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -29,10 +29,16 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Test caller proxy
+      - name: Verify direct provider credential plumbing
+        run: python3 scripts/check-provider-security.py
+      - name: Test historical caller proxy
         run: node --test backend/test/*.test.mjs
       - name: Clean, test, lint and build FOSS debug
         run: ./gradlew clean :app:testFossDebugUnitTest :app:lintFossDebug :app:assembleFossDebug
+      - name: Scan generated APK for embedded provider keys
+        run: python3 scripts/check-provider-security.py app/build/outputs/apk/foss/debug/*.apk
+      - name: Compile Android device tests
+        run: ./gradlew :app:assembleFossDebugAndroidTest
       - name: Package APK and checksums
         run: |
           mkdir -p artifacts

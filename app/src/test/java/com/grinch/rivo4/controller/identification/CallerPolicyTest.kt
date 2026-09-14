@@ -4,6 +4,15 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class CallerPolicyTest {
+    @Test fun providerOffNeverDispatchesEvenWithVerifiedKey() {
+        assertFalse(CallerPolicy.providerMayLookup(false, true, 1, 1))
+    }
+    @Test fun providerWithoutVerifiedKeyNeverDispatches() {
+        assertFalse(CallerPolicy.providerMayLookup(true, false, 1, 1))
+        assertFalse(CallerPolicy.providerMayLookup(true, true, 1, 2))
+        assertTrue(CallerPolicy.providerMayLookup(true, true, 1, 1))
+    }
+
     private val google = CallerLabel("Business", "google", expires = 100)
     private val ipqs = CallerLabel("Ambiguous name", "ipqs", risk = 95, expires = 100)
     private fun select(contact: CallerLabel? = null, custom: String? = null, online: Boolean = true,

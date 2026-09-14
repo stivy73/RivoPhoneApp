@@ -564,6 +564,7 @@ class CallService : InCallService() {
 
     private fun updateNotification(call: Call, identityUpdate: Boolean = false) {
         val renderedState = call.state
+        val renderedIdentityRevision = callerIdentification.revision.value
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         
         val channel = NotificationChannel(
@@ -744,7 +745,8 @@ class CallService : InCallService() {
         val notification = builder.build()
         if (identityUpdate) {
             serviceScope.launch {
-                if (_currentCallSession.value?.call === call && call.state == renderedState && call.state != Call.STATE_DISCONNECTED) {
+                if (_currentCallSession.value?.call === call && call.state == renderedState && call.state != Call.STATE_DISCONNECTED &&
+                    callerIdentification.revision.value == renderedIdentityRevision) {
                     startForeground(NOTIFICATION_ID, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_PHONE_CALL)
                 }
             }

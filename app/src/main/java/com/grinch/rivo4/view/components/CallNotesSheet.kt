@@ -1,5 +1,6 @@
 package com.grinch.rivo4.view.components
 
+import com.grinch.rivo4.controller.util.RivoText
 import android.view.HapticFeedbackConstants
 import android.widget.Toast
 import androidx.compose.foundation.horizontalScroll
@@ -102,12 +103,12 @@ fun CallNotesSheet(
 
     val quickTags = remember {
         listOf(
-            NoteTagItem("Call back", "Call back", Icons.AutoMirrored.Outlined.PhoneCallback),
-            NoteTagItem("Follow-up", "Follow-up", Icons.Outlined.EventRepeat),
-            NoteTagItem("Meeting", "Meeting", Icons.Outlined.Schedule),
-            NoteTagItem("Important", "Important", Icons.Outlined.Star),
-            NoteTagItem("Address", "Address", Icons.Outlined.LocationOn),
-            NoteTagItem("Done", "Done", Icons.Outlined.CheckCircle)
+            NoteTagItem(RivoText.get(com.grinch.rivo4.R.string.ui_call_back_94), RivoText.get(com.grinch.rivo4.R.string.ui_call_back_94), Icons.AutoMirrored.Outlined.PhoneCallback),
+            NoteTagItem(RivoText.get(com.grinch.rivo4.R.string.note_tag_follow_up), RivoText.get(com.grinch.rivo4.R.string.note_tag_follow_up), Icons.Outlined.EventRepeat),
+            NoteTagItem(RivoText.get(com.grinch.rivo4.R.string.note_tag_meeting), RivoText.get(com.grinch.rivo4.R.string.note_tag_meeting), Icons.Outlined.Schedule),
+            NoteTagItem(RivoText.get(com.grinch.rivo4.R.string.note_tag_important), RivoText.get(com.grinch.rivo4.R.string.note_tag_important), Icons.Outlined.Star),
+            NoteTagItem(RivoText.get(com.grinch.rivo4.R.string.note_tag_address), RivoText.get(com.grinch.rivo4.R.string.note_tag_address), Icons.Outlined.LocationOn),
+            NoteTagItem(RivoText.get(com.grinch.rivo4.R.string.note_tag_done), RivoText.get(com.grinch.rivo4.R.string.note_tag_done), Icons.Outlined.CheckCircle)
         )
     }
 
@@ -153,7 +154,7 @@ fun CallNotesSheet(
                     Column(modifier = Modifier.weight(1f)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = "Call Notes",
+                                text = RivoText.get(com.grinch.rivo4.R.string.ui_call_notes_95),
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
@@ -192,7 +193,7 @@ fun CallNotesSheet(
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = Icons.Default.Close,
-                            contentDescription = "Close",
+                            contentDescription = RivoText.get(com.grinch.rivo4.R.string.ui_close_98),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(18.dp)
                         )
@@ -218,7 +219,7 @@ fun CallNotesSheet(
                         onValueChange = { noteInput = it },
                         placeholder = {
                             Text(
-                                "Add note, callback, or reminder...",
+                                RivoText.get(com.grinch.rivo4.R.string.ui_add_note_callback_or_reminder_99),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                             )
@@ -238,7 +239,7 @@ fun CallNotesSheet(
                                 IconButton(onClick = { noteInput = "" }) {
                                     Icon(
                                         Icons.Default.Clear,
-                                        contentDescription = "Clear",
+                                        contentDescription = RivoText.get(com.grinch.rivo4.R.string.ui_clear_100),
                                         modifier = Modifier.size(18.dp),
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -301,7 +302,7 @@ fun CallNotesSheet(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = if (noteInput.isNotBlank()) "${noteInput.length} chars" else "",
+                            text = if (noteInput.isNotBlank()) RivoText.get(com.grinch.rivo4.R.string.ui_chars_102, (noteInput.length).toString()) else "",
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -333,7 +334,7 @@ fun CallNotesSheet(
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(Modifier.width(6.dp))
-                            Text("Save Note", fontWeight = FontWeight.Bold)
+                            Text(RivoText.get(com.grinch.rivo4.R.string.ui_save_note_103), fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -373,14 +374,14 @@ fun CallNotesSheet(
                         }
                         Spacer(Modifier.height(12.dp))
                         Text(
-                            text = "No notes recorded yet",
+                            text = RivoText.get(com.grinch.rivo4.R.string.ui_no_notes_recorded_yet_104),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            text = "Jot down reminders, callback tasks, or takeaways from this call.",
+                            text = RivoText.get(com.grinch.rivo4.R.string.ui_jot_down_reminders_callback_tasks_or_takeaways_from_this_call_105),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center
@@ -396,13 +397,13 @@ fun CallNotesSheet(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Saved Notes",
+                        text = RivoText.get(com.grinch.rivo4.R.string.ui_saved_notes_106),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = "${notes.size} total",
+                        text = RivoText.get(com.grinch.rivo4.R.string.ui_total_107, (notes.size).toString()),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -456,13 +457,13 @@ fun CallNotesSheet(
                                         onClick = {
                                             view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                                             clipboardManager.setText(AnnotatedString(item.note))
-                                            Toast.makeText(context, "Note copied to clipboard", Toast.LENGTH_SHORT).show()
+                                            Toast.makeText(context, RivoText.get(com.grinch.rivo4.R.string.ui_note_copied_to_clipboard_108), Toast.LENGTH_SHORT).show()
                                         },
                                         modifier = Modifier.size(36.dp)
                                     ) {
                                         Icon(
                                             Icons.Outlined.ContentCopy,
-                                            contentDescription = "Copy note",
+                                            contentDescription = RivoText.get(com.grinch.rivo4.R.string.ui_copy_note_109),
                                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                             modifier = Modifier.size(18.dp)
                                         )
@@ -478,7 +479,7 @@ fun CallNotesSheet(
                                     ) {
                                         Icon(
                                             Icons.Default.Delete,
-                                            contentDescription = "Delete note",
+                                            contentDescription = RivoText.get(com.grinch.rivo4.R.string.ui_delete_note_110),
                                             tint = MaterialTheme.colorScheme.error.copy(alpha = 0.85f),
                                             modifier = Modifier.size(18.dp)
                                         )
@@ -508,21 +509,21 @@ fun AddCallNoteDialog(
 
     val quickTags = remember {
         listOf(
-            NoteTagItem("Call back", "Call back", Icons.AutoMirrored.Outlined.PhoneCallback),
-            NoteTagItem("Follow-up", "Follow-up", Icons.Outlined.EventRepeat),
-            NoteTagItem("Meeting", "Meeting", Icons.Outlined.Schedule),
-            NoteTagItem("Important", "Important", Icons.Outlined.Star),
-            NoteTagItem("Address", "Address", Icons.Outlined.LocationOn)
+            NoteTagItem(RivoText.get(com.grinch.rivo4.R.string.ui_call_back_94), RivoText.get(com.grinch.rivo4.R.string.ui_call_back_94), Icons.AutoMirrored.Outlined.PhoneCallback),
+            NoteTagItem(RivoText.get(com.grinch.rivo4.R.string.note_tag_follow_up), RivoText.get(com.grinch.rivo4.R.string.note_tag_follow_up), Icons.Outlined.EventRepeat),
+            NoteTagItem(RivoText.get(com.grinch.rivo4.R.string.note_tag_meeting), RivoText.get(com.grinch.rivo4.R.string.note_tag_meeting), Icons.Outlined.Schedule),
+            NoteTagItem(RivoText.get(com.grinch.rivo4.R.string.note_tag_important), RivoText.get(com.grinch.rivo4.R.string.note_tag_important), Icons.Outlined.Star),
+            NoteTagItem(RivoText.get(com.grinch.rivo4.R.string.note_tag_address), RivoText.get(com.grinch.rivo4.R.string.note_tag_address), Icons.Outlined.LocationOn)
         )
     }
 
     RivoDialog(
         onDismissRequest = onDismissRequest,
-        title = "Add Call Note",
+        title = RivoText.get(com.grinch.rivo4.R.string.ui_add_call_note_111),
         icon = Icons.AutoMirrored.Filled.Notes,
         supportingText = if (contactName.isNotBlank()) "$contactName • $phoneNumber" else phoneNumber,
         confirmAction = RivoDialogAction(
-            label = "Save Note",
+            label = RivoText.get(com.grinch.rivo4.R.string.ui_save_note_103),
             enabled = noteText.isNotBlank(),
             onClick = {
                 val text = noteText.trim()
@@ -601,7 +602,7 @@ fun AddCallNoteDialog(
                 onValueChange = { noteText = it },
                 placeholder = {
                     Text(
-                        "Enter your note or callback reminder...",
+                        RivoText.get(com.grinch.rivo4.R.string.ui_enter_your_note_or_callback_reminder_113),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                     )
@@ -621,7 +622,7 @@ fun AddCallNoteDialog(
                         IconButton(onClick = { noteText = "" }) {
                             Icon(
                                 Icons.Default.Clear,
-                                contentDescription = "Clear",
+                                contentDescription = RivoText.get(com.grinch.rivo4.R.string.ui_clear_100),
                                 modifier = Modifier.size(18.dp),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -632,7 +633,7 @@ fun AddCallNoteDialog(
 
             if (noteText.isNotBlank()) {
                 Text(
-                    text = "${noteText.length} characters",
+                    text = RivoText.get(com.grinch.rivo4.R.string.ui_characters_114, (noteText.length).toString()),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.align(Alignment.End)

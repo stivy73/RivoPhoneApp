@@ -1,5 +1,6 @@
 package com.grinch.rivo4.view.screen.settings
 
+import com.grinch.rivo4.controller.util.RivoText
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -156,26 +157,26 @@ fun SettingsScreen(
             // 1. Personalization & Display
             item {
                 RivoExpressiveCard(
-                    title = "Personalization & Display",
+                    title = RivoText.get(com.grinch.rivo4.R.string.ui_personalization_display_336),
                     icon = Icons.Outlined.Palette
                 ) {
                     RivoListItem(
-                        headline = "Theme & Appearance",
-                        supporting = "Material You, color palette, AMOLED dark mode & animations",
+                        headline = RivoText.get(com.grinch.rivo4.R.string.ui_theme_appearance_282),
+                        supporting = RivoText.get(com.grinch.rivo4.R.string.ui_material_you_color_palette_amoled_dark_mode_animations_337),
                         leadingIcon = Icons.Outlined.Palette,
                         onClick = { navigator.navigate(InterfaceScreenDestination) }
                     )
                     RivoDivider(Modifier.padding(horizontal = 16.dp))
                     RivoListItem(
-                        headline = "Navigation Bar",
-                        supporting = "Floating bar style, blur effect, roundness & tab layout",
+                        headline = RivoText.get(com.grinch.rivo4.R.string.ui_navigation_bar_284),
+                        supporting = RivoText.get(com.grinch.rivo4.R.string.ui_floating_bar_style_blur_effect_roundness_tab_layout_285),
                         leadingIcon = Icons.Outlined.Dock,
                         onClick = { navigator.navigate(BottomNavScreenDestination) }
                     )
                     RivoDivider(Modifier.padding(horizontal = 16.dp))
                     RivoListItem(
-                        headline = "Avatars & Contact Cards",
-                        supporting = "11 avatar shapes, contact photos, initials & cards",
+                        headline = RivoText.get(com.grinch.rivo4.R.string.ui_avatars_contact_cards_286),
+                        supporting = RivoText.get(com.grinch.rivo4.R.string.ui_11_avatar_shapes_contact_photos_initials_cards_287),
                         leadingIcon = Icons.Outlined.AccountCircle,
                         onClick = { navigator.navigate(AvatarSettingsScreenDestination) }
                     )
@@ -192,7 +193,7 @@ fun SettingsScreen(
             // 2. Calling & Behavior
             item {
                 RivoExpressiveCard(
-                    title = "Calling & Behavior",
+                    title = RivoText.get(com.grinch.rivo4.R.string.ui_calling_behavior_338),
                     icon = Icons.Outlined.Phone
                 ) {
                     RivoListItem(
@@ -211,14 +212,14 @@ fun SettingsScreen(
                     RivoDivider(Modifier.padding(horizontal = 16.dp))
                     RivoListItem(
                         headline = stringResource(R.string.call_recordings_title),
-                        supporting = "Auto-recording, Shizuku internal audio & saved recordings",
+                        supporting = RivoText.get(com.grinch.rivo4.R.string.ui_auto_recording_shizuku_internal_audio_saved_recordings_339),
                         leadingIcon = Icons.Outlined.FiberManualRecord,
                         onClick = { navigator.navigate(CallRecordingsScreenDestination()) }
                     )
                     RivoDivider(Modifier.padding(horizontal = 16.dp))
                     RivoListItem(
-                        headline = "Call Analytics & Insights",
-                        supporting = "Talk time leaderboard, peak hours & distribution",
+                        headline = RivoText.get(com.grinch.rivo4.R.string.ui_call_analytics_insights_340),
+                        supporting = RivoText.get(com.grinch.rivo4.R.string.ui_talk_time_leaderboard_peak_hours_distribution_341),
                         leadingIcon = Icons.Outlined.Analytics,
                         onClick = { navigator.navigate(CallAnalyticsScreenDestination()) }
                     )
@@ -228,13 +229,13 @@ fun SettingsScreen(
             // 3. Call Protection & Security
             item {
                 RivoExpressiveCard(
-                    title = "Call Protection & Security",
+                    title = RivoText.get(com.grinch.rivo4.R.string.ui_call_protection_security_342),
                     icon = Icons.Outlined.Security
                 ) {
                     val appLockEnabled = remember(settingsState) { prefs.isAppLockEnabled() }
                     RivoListItem(
-                        headline = "App Lock",
-                        supporting = if (appLockEnabled) "Enabled (Face, Fingerprint, PIN)" else "Protect app with biometrics or PIN",
+                        headline = RivoText.get(com.grinch.rivo4.R.string.ui_app_lock_244),
+                        supporting = if (appLockEnabled) RivoText.get(com.grinch.rivo4.R.string.ui_enabled_face_fingerprint_pin_343) else RivoText.get(com.grinch.rivo4.R.string.ui_protect_app_with_biometrics_or_pin_344),
                         leadingIcon = Icons.Outlined.Lock,
                         onClick = { navigator.navigate(AppLockScreenDestination) }
                     )
@@ -243,8 +244,8 @@ fun SettingsScreen(
                         prefs.getString(PreferenceManager.KEY_SECRET_DIALPAD_CODE, PreferenceManager.DEFAULT_SECRET_DIALPAD_CODE) ?: PreferenceManager.DEFAULT_SECRET_DIALPAD_CODE
                     }
                     RivoListItem(
-                        headline = "Private Storage",
-                        supporting = "Secret dialpad vault ($secretCode) • Stored only in app memory",
+                        headline = RivoText.get(com.grinch.rivo4.R.string.ui_private_storage_88),
+                        supporting = RivoText.get(com.grinch.rivo4.R.string.ui_secret_dialpad_vault_stored_only_in_app_memory_345, (secretCode).toString()),
                         leadingIcon = Icons.Outlined.FolderShared,
                         onClick = { navigator.navigate(PrivateContactsScreenDestination) }
                     )
@@ -264,8 +265,8 @@ fun SettingsScreen(
                     )
                     RivoDivider(Modifier.padding(horizontal = 16.dp))
                     RivoListItem(
-                        headline = "Permissions & App Setup",
-                        supporting = "Review granted permissions and system capabilities",
+                        headline = RivoText.get(com.grinch.rivo4.R.string.ui_permissions_app_setup_202),
+                        supporting = RivoText.get(com.grinch.rivo4.R.string.ui_review_granted_permissions_and_system_capabilities_346),
                         leadingIcon = Icons.Outlined.VerifiedUser,
                         onClick = { navigator.navigate(PermissionsChecklistScreenDestination) }
                     )
@@ -304,13 +305,13 @@ fun SettingsScreen(
             // 5. Support & About
             item {
                 RivoExpressiveCard(
-                    title = "Support & About",
+                    title = RivoText.get(com.grinch.rivo4.R.string.ui_support_about_347),
                     icon = Icons.Outlined.HelpOutline
                 ) {
                     if (IS_ADS_SUPPORTED) {
                         RivoSwitchListItem(
-                            headline = "Display Banner Ads",
-                            supporting = "Show non-intrusive banner ads inside lists to support development",
+                            headline = RivoText.get(com.grinch.rivo4.R.string.ui_display_banner_ads_348),
+                            supporting = RivoText.get(com.grinch.rivo4.R.string.ui_show_non_intrusive_banner_ads_inside_lists_to_support_developm_349),
                             leadingIcon = Icons.Outlined.AdUnits,
                             checked = enableAds,
                             onCheckedChange = { checked ->
@@ -325,15 +326,15 @@ fun SettingsScreen(
                         RivoDivider(Modifier.padding(horizontal = 16.dp))
                     }
                     RivoListItem(
-                        headline = "Rate on Google Play",
-                        supporting = "Support Rivo on Google Play Store",
+                        headline = RivoText.get(com.grinch.rivo4.R.string.ui_rate_on_google_play_350),
+                        supporting = RivoText.get(com.grinch.rivo4.R.string.ui_support_rivo_on_google_play_store_351),
                         leadingIcon = Icons.Default.Star,
                         onClick = { openLink(context, PLAY_STORE_URL) }
                     )
                     RivoDivider(Modifier.padding(horizontal = 16.dp))
                     RivoListItem(
-                        headline = "About Rivo",
-                        supporting = "Version, open source licenses & contributors",
+                        headline = RivoText.get(com.grinch.rivo4.R.string.ui_about_rivo_352),
+                        supporting = RivoText.get(com.grinch.rivo4.R.string.ui_version_open_source_licenses_contributors_353),
                         leadingIcon = Icons.Outlined.Info,
                         onClick = { navigator.navigate(AboutScreenDestination) }
                     )

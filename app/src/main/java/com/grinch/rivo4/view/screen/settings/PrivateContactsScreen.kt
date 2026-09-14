@@ -1,5 +1,6 @@
 package com.grinch.rivo4.view.screen.settings
 
+import com.grinch.rivo4.controller.util.RivoText
 import android.accounts.Account
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -124,7 +125,7 @@ fun PrivateContactsScreen(
                 TopAppBar(
                     title = {
                         Text(
-                            text = "${selectedContactIds.size} selected",
+                            text = RivoText.get(com.grinch.rivo4.R.string.ui_selected_212, (selectedContactIds.size).toString()),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
@@ -175,7 +176,7 @@ fun PrivateContactsScreen(
                     },
                     actions = {
                         IconButton(onClick = { showSecurityDialog = true }) {
-                            Icon(Icons.Outlined.Password, contentDescription = "Secret Dialpad Code")
+                            Icon(Icons.Outlined.Password, contentDescription = RivoText.get(com.grinch.rivo4.R.string.ui_secret_dialpad_code_213))
                         }
                     }
                 )
@@ -220,7 +221,7 @@ fun PrivateContactsScreen(
                                     )
                                     Spacer(Modifier.height(2.dp))
                                     Text(
-                                        text = "Stored locally in Rivo only (hidden from other apps) • ${privateContacts.size} contacts",
+                                        text = RivoText.get(com.grinch.rivo4.R.string.ui_stored_locally_in_rivo_only_hidden_from_other_apps_contacts_214, (privateContacts.size).toString()),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -235,9 +236,9 @@ fun PrivateContactsScreen(
                                     onClick = {
                                         navigator.navigate(
                                             ContactSelectionScreenDestination(
-                                                title = "Select Contacts for Private Storage",
+                                                title = RivoText.get(com.grinch.rivo4.R.string.ui_select_contacts_for_private_storage_215),
                                                 isMultiSelect = true,
-                                                actionButtonText = "Move to Private Storage",
+                                                actionButtonText = RivoText.get(com.grinch.rivo4.R.string.ui_move_to_private_storage_216),
                                                 returnContactId = true
                                             )
                                         )
@@ -248,7 +249,7 @@ fun PrivateContactsScreen(
                                 ) {
                                     Icon(Icons.Outlined.PersonSearch, contentDescription = null, modifier = Modifier.size(16.dp))
                                     Spacer(Modifier.width(4.dp))
-                                    Text("Pick Contacts", style = MaterialTheme.typography.labelMedium)
+                                    Text(RivoText.get(com.grinch.rivo4.R.string.ui_pick_contacts_217), style = MaterialTheme.typography.labelMedium)
                                 }
                                 FilledTonalButton(
                                     onClick = { importLauncher.launch("text/vcard") },
@@ -258,7 +259,7 @@ fun PrivateContactsScreen(
                                 ) {
                                     Icon(Icons.Outlined.FileDownload, contentDescription = null, modifier = Modifier.size(16.dp))
                                     Spacer(Modifier.width(4.dp))
-                                    Text("Import", style = MaterialTheme.typography.labelMedium)
+                                    Text(RivoText.get(com.grinch.rivo4.R.string.ui_import_218), style = MaterialTheme.typography.labelMedium)
                                 }
                                 FilledTonalButton(
                                     onClick = { exportLauncher.launch("private_contacts.vcf") },
@@ -268,7 +269,7 @@ fun PrivateContactsScreen(
                                 ) {
                                     Icon(Icons.Outlined.FileUpload, contentDescription = null, modifier = Modifier.size(16.dp))
                                     Spacer(Modifier.width(4.dp))
-                                    Text("Export", style = MaterialTheme.typography.labelMedium)
+                                    Text(RivoText.get(com.grinch.rivo4.R.string.ui_export_219), style = MaterialTheme.typography.labelMedium)
                                 }
                             }
                         }
@@ -336,9 +337,9 @@ fun PrivateContactsScreen(
                                     onClick = {
                                         navigator.navigate(
                                             ContactSelectionScreenDestination(
-                                                title = "Select Contacts for Private Storage",
+                                                title = RivoText.get(com.grinch.rivo4.R.string.ui_select_contacts_for_private_storage_215),
                                                 isMultiSelect = true,
-                                                actionButtonText = "Move to Private Storage",
+                                                actionButtonText = RivoText.get(com.grinch.rivo4.R.string.ui_move_to_private_storage_216),
                                                 returnContactId = true
                                             )
                                         )
@@ -347,7 +348,7 @@ fun PrivateContactsScreen(
                                 ) {
                                     Icon(Icons.Outlined.PersonSearch, contentDescription = null)
                                     Spacer(Modifier.width(8.dp))
-                                    Text("Pick Contacts for Private Storage")
+                                    Text(RivoText.get(com.grinch.rivo4.R.string.ui_pick_contacts_for_private_storage_220))
                                 }
                             }
                         }
@@ -401,7 +402,7 @@ fun PrivateContactsScreen(
 
     if (showMoveAccountDialog && targetContactsToMove.isNotEmpty()) {
         val publicLabel = stringResource(R.string.contact_move_to_public_storage)
-        val publicDesc = "Move to public device contacts database"
+        val publicDesc = RivoText.get(com.grinch.rivo4.R.string.ui_move_to_public_device_contacts_database_222)
         val storageOptions = remember(availableAccounts, publicLabel) {
             listOf("public" to Pair(publicLabel, publicDesc)) +
             availableAccounts.map { acc -> acc.name to Pair(acc.name, acc.type) }
@@ -437,7 +438,7 @@ fun PrivateContactsScreen(
     if (showSecurityDialog) {
         RivoDialog(
             onDismissRequest = { showSecurityDialog = false },
-            title = "Secret Dialpad Code",
+            title = RivoText.get(com.grinch.rivo4.R.string.ui_secret_dialpad_code_213),
             icon = Icons.Outlined.Password,
             confirmAction = com.grinch.rivo4.view.components.RivoDialogAction(
                 label = stringResource(R.string.action_save),
@@ -448,7 +449,7 @@ fun PrivateContactsScreen(
                     }
                     prefs.setBoolean(com.grinch.rivo4.controller.util.PreferenceManager.KEY_HIDE_PRIVATE_SETTINGS_ENTRY, hideFromSettings)
                     showSecurityDialog = false
-                    android.widget.Toast.makeText(context, "Secret code settings updated", android.widget.Toast.LENGTH_SHORT).show()
+                    android.widget.Toast.makeText(context, RivoText.get(com.grinch.rivo4.R.string.ui_secret_code_settings_updated_224), android.widget.Toast.LENGTH_SHORT).show()
                 }
             ),
             dismissAction = com.grinch.rivo4.view.components.RivoDialogAction(
@@ -458,14 +459,14 @@ fun PrivateContactsScreen(
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    text = "Type this secret code on the dialpad to reveal contacts in private storage.",
+                    text = RivoText.get(com.grinch.rivo4.R.string.ui_type_this_secret_code_on_the_dialpad_to_reveal_contacts_in_pri_225),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 OutlinedTextField(
                     value = secretCodeInput,
                     onValueChange = { secretCodeInput = it },
-                    label = { Text("Secret Code") },
+                    label = { Text(RivoText.get(com.grinch.rivo4.R.string.ui_secret_code_226)) },
                     placeholder = { Text("*#0000#") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
@@ -477,12 +478,12 @@ fun PrivateContactsScreen(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Hide from Settings",
+                            text = RivoText.get(com.grinch.rivo4.R.string.ui_hide_from_settings_227),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold
                         )
                         Text(
-                            text = "Only the secret dialpad code will access private storage",
+                            text = RivoText.get(com.grinch.rivo4.R.string.ui_only_the_secret_dialpad_code_will_access_private_storage_228),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -582,7 +583,7 @@ fun PrivateContactCard(
                             )
                             Spacer(Modifier.width(2.dp))
                             Text(
-                                text = if (contact.isHidden) "Hidden" else "Private",
+                                text = if (contact.isHidden) RivoText.get(com.grinch.rivo4.R.string.ui_hidden_229) else RivoText.get(com.grinch.rivo4.R.string.ui_private_230),
                                 style = MaterialTheme.typography.labelSmall
                             )
                         }
@@ -615,7 +616,7 @@ fun PrivateContactCard(
                 }
                 RivoDropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
                     RivoDropdownMenuItem(
-                        text = { Text(if (contact.isHidden) "Unhide Contact" else "Hide Contact Completely") },
+                        text = { Text(if (contact.isHidden) RivoText.get(com.grinch.rivo4.R.string.ui_unhide_contact_163) else RivoText.get(com.grinch.rivo4.R.string.ui_hide_contact_completely_164)) },
                         onClick = {
                             showMenu = false
                             onToggleHidden()
@@ -644,7 +645,7 @@ fun PrivateContactCard(
                         leadingIcon = { Icon(Icons.Outlined.LockOpen, contentDescription = null) }
                     )
                     RivoDropdownMenuItem(
-                        text = { Text("Move to Account...") },
+                        text = { Text(RivoText.get(com.grinch.rivo4.R.string.ui_move_to_account_231)) },
                         onClick = {
                             showMenu = false
                             onMoveToAccount()

@@ -1,5 +1,6 @@
 package com.grinch.rivo4.view.screen
 
+import com.grinch.rivo4.controller.util.RivoText
 import android.Manifest
 import android.content.*
 import android.content.pm.PackageManager
@@ -911,13 +912,13 @@ fun ContactDetailsScreen(
                         val callNotes by callNoteDao.getNotesForNumber(displayPhone).collectAsState(initial = emptyList())
                         val dateFormat = remember { SimpleDateFormat("MMM d, yyyy HH:mm", Locale.getDefault()) }
                         RivoExpressiveCard(
-                            title = "Call Notes (${callNotes.size})",
+                            title = RivoText.get(com.grinch.rivo4.R.string.ui_call_notes_154, (callNotes.size).toString()),
                             icon = Icons.Outlined.EditNote
                         ) {
                             Column(modifier = Modifier.animateContentSize()) {
                                 if (callNotes.isEmpty()) {
                                     Text(
-                                        text = "No call notes for this contact",
+                                        text = RivoText.get(com.grinch.rivo4.R.string.ui_no_call_notes_for_this_contact_155),
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.padding(16.dp)
@@ -937,7 +938,7 @@ fun ContactDetailsScreen(
                                                 ) {
                                                     Icon(
                                                         Icons.Default.Delete,
-                                                        contentDescription = "Delete",
+                                                        contentDescription = RivoText.get(com.grinch.rivo4.R.string.ui_delete_156),
                                                         tint = MaterialTheme.colorScheme.error,
                                                         modifier = Modifier.size(18.dp)
                                                     )
@@ -955,7 +956,7 @@ fun ContactDetailsScreen(
                                 ) {
                                     Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                                     Spacer(Modifier.width(8.dp))
-                                    Text("Add Call Note")
+                                    Text(RivoText.get(com.grinch.rivo4.R.string.ui_add_call_note_111))
                                 }
                             }
                         }
@@ -999,18 +1000,18 @@ fun ContactDetailsScreen(
                     if (contactRecordings.isNotEmpty()) {
                         item {
                             RivoExpressiveCard(
-                                title = "Call Recordings (${contactRecordings.size})",
+                                title = RivoText.get(com.grinch.rivo4.R.string.ui_call_recordings_157, (contactRecordings.size).toString()),
                                 icon = Icons.Outlined.Mic
                             ) {
                                 Column(modifier = Modifier.animateContentSize()) {
                                     contactRecordings.take(3).forEachIndexed { index, file ->
                                         RivoListItem(
                                             headline = file.nameWithoutExtension,
-                                            supporting = SimpleDateFormat("MMM d, yyyy HH:mm", Locale.getDefault()).format(Date(file.lastModified())),
+                                            supporting = SimpleDateFormat("MMM d, yyyy HH:mm", androidx.compose.ui.platform.LocalConfiguration.current.locales[0]).format(Date(file.lastModified())),
                                             leadingIcon = Icons.Outlined.AudioFile,
                                             trailingIcon = Icons.Default.Share,
                                             onClick = {
-                                                CallRecorder.share(context, file, "Share Recording")
+                                                CallRecorder.share(context, file, RivoText.get(com.grinch.rivo4.R.string.ui_share_recording_158))
                                             }
                                         )
                                         if (index < contactRecordings.size - 1 && index < 2) {
@@ -1022,7 +1023,7 @@ fun ContactDetailsScreen(
                                             onClick = { navigator.navigate(CallRecordingsScreenDestination(initialShowList = true)) },
                                             modifier = Modifier.fillMaxWidth()
                                         ) {
-                                            Text("View All Recordings (${contactRecordings.size})")
+                                            Text(RivoText.get(com.grinch.rivo4.R.string.ui_view_all_recordings_159, (contactRecordings.size).toString()))
                                         }
                                     }
                                 }
@@ -1070,8 +1071,8 @@ fun ContactDetailsScreen(
                             ) {
                                 Column(modifier = Modifier.fillMaxWidth()) {
                                     RivoListItem(
-                                        headline = "Callback Reminder",
-                                        supporting = "Schedule a reminder to call back",
+                                        headline = RivoText.get(com.grinch.rivo4.R.string.ui_callback_reminder_120),
+                                        supporting = RivoText.get(com.grinch.rivo4.R.string.ui_schedule_a_reminder_to_call_back_160),
                                         leadingIcon = Icons.Outlined.Alarm,
                                         trailingIcon = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                                         onClick = { showReminderDialog = true }
@@ -1138,8 +1139,8 @@ fun ContactDetailsScreen(
 
                                     // 3. Callback Reminder
                                     RivoListItem(
-                                        headline = "Callback Reminder",
-                                        supporting = "Schedule a reminder to call back",
+                                        headline = RivoText.get(com.grinch.rivo4.R.string.ui_callback_reminder_120),
+                                        supporting = RivoText.get(com.grinch.rivo4.R.string.ui_schedule_a_reminder_to_call_back_160),
                                         leadingIcon = Icons.Outlined.Alarm,
                                         trailingIcon = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                                         onClick = { showReminderDialog = true }
@@ -1150,7 +1151,7 @@ fun ContactDetailsScreen(
                                     // 4. Share Contact
                                     RivoListItem(
                                         headline = shareContactLabel,
-                                        supporting = "Share vCard contact file",
+                                        supporting = RivoText.get(com.grinch.rivo4.R.string.ui_share_vcard_contact_file_161),
                                         leadingIcon = Icons.Default.Share,
                                         trailingIcon = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                                         onClick = shareContact
@@ -1161,7 +1162,7 @@ fun ContactDetailsScreen(
                                     // 5. Contact QR Code
                                     RivoListItem(
                                         headline = stringResource(R.string.contact_qr_code),
-                                        supporting = "Display contact QR code",
+                                        supporting = RivoText.get(com.grinch.rivo4.R.string.ui_display_contact_qr_code_162),
                                         leadingIcon = Icons.Outlined.QrCode2,
                                         trailingIcon = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                                         onClick = { showQrDialog = true }
@@ -1190,8 +1191,8 @@ fun ContactDetailsScreen(
                                         val secretCode = prefs.getString(com.grinch.rivo4.controller.util.PreferenceManager.KEY_SECRET_DIALPAD_CODE, com.grinch.rivo4.controller.util.PreferenceManager.DEFAULT_SECRET_DIALPAD_CODE) ?: com.grinch.rivo4.controller.util.PreferenceManager.DEFAULT_SECRET_DIALPAD_CODE
                                         RivoDivider(Modifier.padding(horizontal = 16.dp))
                                         RivoListItem(
-                                            headline = if (fc.isHidden) "Unhide Contact" else "Hide Contact Completely",
-                                            supporting = if (fc.isHidden) "Visible in lists" else "Hidden from lists (dial $secretCode to unlock)",
+                                            headline = if (fc.isHidden) RivoText.get(com.grinch.rivo4.R.string.ui_unhide_contact_163) else RivoText.get(com.grinch.rivo4.R.string.ui_hide_contact_completely_164),
+                                            supporting = if (fc.isHidden) RivoText.get(com.grinch.rivo4.R.string.ui_visible_in_lists_165) else RivoText.get(com.grinch.rivo4.R.string.ui_hidden_from_lists_dial_to_unlock_166, (secretCode).toString()),
                                             leadingIcon = if (fc.isHidden) Icons.Outlined.Visibility else Icons.Outlined.VisibilityOff,
                                             trailingIcon = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                                             onClick = {
@@ -1226,7 +1227,7 @@ fun ContactDetailsScreen(
                                     // 9. Delete Contact
                                     RivoListItem(
                                         headline = stringResource(R.string.action_delete),
-                                        supporting = "Remove contact from device",
+                                        supporting = RivoText.get(com.grinch.rivo4.R.string.ui_remove_contact_from_device_167),
                                         leadingIcon = Icons.Default.Delete,
                                         headlineColor = MaterialTheme.colorScheme.error,
                                         trailingIcon = Icons.AutoMirrored.Filled.KeyboardArrowRight,

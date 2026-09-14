@@ -1,5 +1,6 @@
 package com.grinch.rivo4.view.screen
 
+import com.grinch.rivo4.controller.util.RivoText
 import android.app.Activity
 import android.app.role.RoleManager
 import android.content.Context
@@ -177,7 +178,7 @@ fun DefaultDialerScreen(navController: NavController, navigator: DestinationsNav
                     }
                 ) {
                     Text(
-                        text = "Continue anyway",
+                        text = RivoText.get(com.grinch.rivo4.R.string.ui_continue_anyway_195),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

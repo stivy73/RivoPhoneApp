@@ -1,5 +1,6 @@
 package com.grinch.rivo4.view.screen.settings
 
+import com.grinch.rivo4.controller.util.RivoText
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -50,7 +51,7 @@ fun QuickResponsesScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Quick Responses", fontWeight = FontWeight.Bold) },
+                title = { Text(RivoText.get(com.grinch.rivo4.R.string.ui_quick_responses_290), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = { navigator.navigateUp() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
@@ -58,7 +59,7 @@ fun QuickResponsesScreen(
                 },
                 actions = {
                     IconButton(onClick = { showResetConfirm = true }) {
-                        Icon(Icons.Outlined.RestartAlt, contentDescription = "Reset to Defaults")
+                        Icon(Icons.Outlined.RestartAlt, contentDescription = RivoText.get(com.grinch.rivo4.R.string.ui_reset_to_defaults_354))
                     }
                 }
             )
@@ -71,7 +72,7 @@ fun QuickResponsesScreen(
                 },
                 shape = CircleShape
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Add Response")
+                Icon(Icons.Default.Add, contentDescription = RivoText.get(com.grinch.rivo4.R.string.ui_add_response_355))
             }
         }
     ) { padding ->
@@ -103,13 +104,13 @@ fun QuickResponsesScreen(
                             Spacer(Modifier.width(16.dp))
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "In-Call Quick Decline Messages",
+                                    text = RivoText.get(com.grinch.rivo4.R.string.ui_in_call_quick_decline_messages_356),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold
                                 )
                                 Spacer(Modifier.height(2.dp))
                                 Text(
-                                    text = "Tap the message button during an incoming call to decline and send one of these canned replies via SMS.",
+                                    text = RivoText.get(com.grinch.rivo4.R.string.ui_tap_the_message_button_during_an_incoming_call_to_decline_and__357),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -121,7 +122,7 @@ fun QuickResponsesScreen(
 
             item {
                 RivoExpressiveCard(
-                    title = "Canned Responses (${responses.size})",
+                    title = RivoText.get(com.grinch.rivo4.R.string.ui_canned_responses_358, (responses.size).toString()),
                     icon = Icons.Outlined.Message
                 ) {
                     if (responses.isEmpty()) {
@@ -132,7 +133,7 @@ fun QuickResponsesScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "No quick responses configured",
+                                text = RivoText.get(com.grinch.rivo4.R.string.ui_no_quick_responses_configured_359),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -158,7 +159,7 @@ fun QuickResponsesScreen(
                                 ) {
                                     Icon(
                                         Icons.Default.Edit,
-                                        contentDescription = "Edit",
+                                        contentDescription = RivoText.get(com.grinch.rivo4.R.string.ui_edit_360),
                                         tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(18.dp)
                                     )
@@ -172,7 +173,7 @@ fun QuickResponsesScreen(
                                 ) {
                                     Icon(
                                         Icons.Default.Delete,
-                                        contentDescription = "Delete",
+                                        contentDescription = RivoText.get(com.grinch.rivo4.R.string.ui_delete_156),
                                         tint = MaterialTheme.colorScheme.error,
                                         modifier = Modifier.size(18.dp)
                                     )
@@ -191,7 +192,7 @@ fun QuickResponsesScreen(
     if (isAddingNew) {
         RivoDialog(
             onDismissRequest = { isAddingNew = false },
-            title = "New Quick Response",
+            title = RivoText.get(com.grinch.rivo4.R.string.ui_new_quick_response_361),
             icon = Icons.Outlined.AddComment,
             confirmButton = {
                 TextButton(
@@ -206,7 +207,7 @@ fun QuickResponsesScreen(
                     },
                     enabled = editingText.isNotBlank()
                 ) {
-                    Text("Add")
+                    Text(RivoText.get(com.grinch.rivo4.R.string.ui_add_362))
                 }
             },
             dismissButton = {
@@ -218,7 +219,7 @@ fun QuickResponsesScreen(
             OutlinedTextField(
                 value = editingText,
                 onValueChange = { editingText = it },
-                label = { Text("Message text") },
+                label = { Text(RivoText.get(com.grinch.rivo4.R.string.ui_message_text_363)) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 maxLines = 3
@@ -230,7 +231,7 @@ fun QuickResponsesScreen(
         val index = editingIndex!!
         RivoDialog(
             onDismissRequest = { editingIndex = null },
-            title = "Edit Quick Response",
+            title = RivoText.get(com.grinch.rivo4.R.string.ui_edit_quick_response_364),
             icon = Icons.Outlined.Edit,
             confirmButton = {
                 TextButton(
@@ -245,7 +246,7 @@ fun QuickResponsesScreen(
                     },
                     enabled = editingText.isNotBlank()
                 ) {
-                    Text("Save")
+                    Text(RivoText.get(com.grinch.rivo4.R.string.ui_save_365))
                 }
             },
             dismissButton = {
@@ -257,7 +258,7 @@ fun QuickResponsesScreen(
             OutlinedTextField(
                 value = editingText,
                 onValueChange = { editingText = it },
-                label = { Text("Message text") },
+                label = { Text(RivoText.get(com.grinch.rivo4.R.string.ui_message_text_363)) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 maxLines = 3
@@ -268,7 +269,7 @@ fun QuickResponsesScreen(
     if (showResetConfirm) {
         RivoDialog(
             onDismissRequest = { showResetConfirm = false },
-            title = "Reset to Defaults",
+            title = RivoText.get(com.grinch.rivo4.R.string.ui_reset_to_defaults_354),
             icon = Icons.Outlined.RestartAlt,
             confirmButton = {
                 TextButton(
@@ -277,7 +278,7 @@ fun QuickResponsesScreen(
                         showResetConfirm = false
                     }
                 ) {
-                    Text("Reset")
+                    Text(RivoText.get(com.grinch.rivo4.R.string.ui_reset_366))
                 }
             },
             dismissButton = {
@@ -287,7 +288,7 @@ fun QuickResponsesScreen(
             }
         ) {
             Text(
-                text = "Restore original preset quick responses?",
+                text = RivoText.get(com.grinch.rivo4.R.string.ui_restore_original_preset_quick_responses_367),
                 style = MaterialTheme.typography.bodyMedium
             )
         }

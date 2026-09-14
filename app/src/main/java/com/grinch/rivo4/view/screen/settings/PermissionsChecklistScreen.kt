@@ -1,5 +1,6 @@
 package com.grinch.rivo4.view.screen.settings
 
+import com.grinch.rivo4.controller.util.RivoText
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -104,7 +105,7 @@ fun PermissionsChecklistScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Permissions & App Setup",
+                        text = RivoText.get(com.grinch.rivo4.R.string.ui_permissions_app_setup_202),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
@@ -113,7 +114,7 @@ fun PermissionsChecklistScreen(
                     IconButton(onClick = { navigator.navigateUp() }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = RivoText.get(com.grinch.rivo4.R.string.ui_back_203)
                         )
                     }
                 }
@@ -145,13 +146,13 @@ fun PermissionsChecklistScreen(
                         Spacer(modifier = Modifier.width(16.dp))
                         Column {
                             Text(
-                                text = "System Permissions Overview",
+                                text = RivoText.get(com.grinch.rivo4.R.string.ui_system_permissions_overview_204),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "Manage runtime permissions and system integrations required for seamless calling.",
+                                text = RivoText.get(com.grinch.rivo4.R.string.ui_manage_runtime_permissions_and_system_integrations_required_fo_205),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -162,7 +163,7 @@ fun PermissionsChecklistScreen(
 
             item {
                 Text(
-                    text = "Essential Permissions",
+                    text = RivoText.get(com.grinch.rivo4.R.string.ui_essential_permissions_206),
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold,
@@ -179,7 +180,7 @@ fun PermissionsChecklistScreen(
 
             item {
                 Text(
-                    text = "Recommended & Advanced Features",
+                    text = RivoText.get(com.grinch.rivo4.R.string.ui_recommended_advanced_features_207),
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold,
@@ -197,8 +198,8 @@ fun PermissionsChecklistScreen(
             item {
                 RivoExpressiveCard {
                     RivoListItem(
-                        headline = "Open App System Settings",
-                        supporting = "View and manage permissions directly in Android device settings",
+                        headline = RivoText.get(com.grinch.rivo4.R.string.ui_open_app_system_settings_208),
+                        supporting = RivoText.get(com.grinch.rivo4.R.string.ui_view_and_manage_permissions_directly_in_android_device_setting_209),
                         leadingIcon = Icons.AutoMirrored.Outlined.OpenInNew,
                         onClick = {
                             context.startActivity(PermissionChecklistHelper.getAppSettingsIntent(context))

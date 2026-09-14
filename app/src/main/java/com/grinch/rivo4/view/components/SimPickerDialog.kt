@@ -1,5 +1,6 @@
 package com.grinch.rivo4.view.components
 
+import com.grinch.rivo4.controller.util.RivoText
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
@@ -73,7 +74,7 @@ fun SimPickerDialog(
             } else if (!desc.isNullOrBlank()) {
                 desc
             } else {
-                "Slot ${phoneAccounts.indexOf(handle) + 1}"
+                RivoText.get(com.grinch.rivo4.R.string.ui_slot_127, (phoneAccounts.indexOf(handle) + 1).toString())
             }
         },
         icon = Icons.Outlined.SimCard,

@@ -1,5 +1,6 @@
 package com.grinch.rivo4.view.screen.onboarding
 
+import com.grinch.rivo4.controller.util.RivoText
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.fadeIn
@@ -161,7 +162,7 @@ fun PermissionItemRow(
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = Icons.Default.Check,
-                            contentDescription = "Granted",
+                            contentDescription = RivoText.get(com.grinch.rivo4.R.string.ui_granted_456),
                             tint = Color.White,
                             modifier = Modifier.size(16.dp)
                         )
@@ -169,10 +170,10 @@ fun PermissionItemRow(
                 }
             } else {
                 val label = when (item.actionType) {
-                    PermissionActionType.ROLE_DIALER -> "Set"
-                    PermissionActionType.OVERLAY -> "Enable"
-                    PermissionActionType.BATTERY_OPTIMIZATION -> "Allow"
-                    else -> "Grant"
+                    PermissionActionType.ROLE_DIALER -> RivoText.get(com.grinch.rivo4.R.string.ui_set_457)
+                    PermissionActionType.OVERLAY -> RivoText.get(com.grinch.rivo4.R.string.ui_enable_458)
+                    PermissionActionType.BATTERY_OPTIMIZATION -> RivoText.get(com.grinch.rivo4.R.string.ui_allow_459)
+                    else -> RivoText.get(com.grinch.rivo4.R.string.ui_grant_460)
                 }
                 FilledTonalButton(
                     onClick = onClick,

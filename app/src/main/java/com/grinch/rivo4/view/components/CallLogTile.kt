@@ -54,6 +54,7 @@ fun CallLogTileSimple(
     val videoLauncher = rememberVideoLauncher()
     val clipboardManager = LocalClipboardManager.current
     val context = LocalContext.current
+    val rivoResources = androidx.compose.ui.platform.LocalResources.current
 
     val icon = when (log.type) {
         CallLog.Calls.INCOMING_TYPE -> Icons.AutoMirrored.Filled.CallReceived
@@ -80,7 +81,7 @@ fun CallLogTileSimple(
                     SwipeActionType.WHATSAPP -> SocialUtils.openWhatsApp(context, log.number)
                     SwipeActionType.COPY_NUMBER -> {
                         clipboardManager.setText(AnnotatedString(log.number))
-                        Toast.makeText(context, context.getString(R.string.number_copied_toast), Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, rivoResources.getString(R.string.number_copied_toast), Toast.LENGTH_SHORT).show()
                     }
                     SwipeActionType.DELETE -> {}
                     SwipeActionType.NONE -> {}
@@ -161,6 +162,7 @@ fun CallLogTile(
     val videoLauncher = rememberVideoLauncher()
     val clipboardManager = LocalClipboardManager.current
     val context = LocalContext.current
+    val rivoResources = androidx.compose.ui.platform.LocalResources.current
 
     val icon = when (log.type) {
         CallLog.Calls.MISSED_TYPE -> Icons.AutoMirrored.Filled.CallMissed
@@ -190,7 +192,7 @@ fun CallLogTile(
                     SwipeActionType.WHATSAPP -> SocialUtils.openWhatsApp(context, log.number)
                     SwipeActionType.COPY_NUMBER -> {
                         clipboardManager.setText(AnnotatedString(log.number))
-                        Toast.makeText(context, context.getString(R.string.number_copied_toast), Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, rivoResources.getString(R.string.number_copied_toast), Toast.LENGTH_SHORT).show()
                     }
                     SwipeActionType.DELETE -> {}
                     SwipeActionType.NONE -> {}

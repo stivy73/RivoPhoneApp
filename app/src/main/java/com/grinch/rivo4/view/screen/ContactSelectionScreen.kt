@@ -1,5 +1,6 @@
 package com.grinch.rivo4.view.screen
 
+import com.grinch.rivo4.controller.util.RivoText
 import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
@@ -51,9 +52,9 @@ import org.koin.compose.viewmodel.koinActivityViewModel
 fun ContactSelectionScreen(
     navigator: DestinationsNavigator,
     resultNavigator: ResultBackNavigator<String>,
-    title: String = "Select Contact",
+    title: String = "",
     isMultiSelect: Boolean = false,
-    actionButtonText: String = "Select",
+    actionButtonText: String = "",
     returnContactId: Boolean = false
 ) {
     val viewModel: ContactsViewModel = koinActivityViewModel()
@@ -105,7 +106,7 @@ fun ContactSelectionScreen(
                 title = {
                     Text(
                         text = if (isMultiSelect && totalSelectedCount > 0) {
-                            "$totalSelectedCount selected"
+                            RivoText.get(com.grinch.rivo4.R.string.ui_selected_131, (totalSelectedCount).toString())
                         } else {
                             title
                         },
@@ -119,7 +120,7 @@ fun ContactSelectionScreen(
                 },
                 actions = {
                     IconButton(onClick = { navigator.navigate(ContactEditScreenDestination()) }) {
-                        Icon(Icons.Outlined.PersonAdd, contentDescription = "Create New Contact")
+                        Icon(Icons.Outlined.PersonAdd, contentDescription = RivoText.get(com.grinch.rivo4.R.string.ui_create_new_contact_132))
                     }
                     if (isMultiSelect && totalSelectedCount > 0) {
                         IconButton(onClick = {
@@ -144,7 +145,7 @@ fun ContactSelectionScreen(
                         resultNavigator.navigateBack(result = csvResult)
                     },
                     icon = { Icon(Icons.Default.Check, contentDescription = null) },
-                    text = { Text("$actionButtonText ($totalSelectedCount)", fontWeight = FontWeight.Bold) },
+                    text = { Text("${actionButtonText.ifBlank { RivoText.get(com.grinch.rivo4.R.string.content_desc_select_option) }} ($totalSelectedCount)", fontWeight = FontWeight.Bold) },
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 )
@@ -193,7 +194,7 @@ fun ContactSelectionScreen(
                                     )
                                     Spacer(Modifier.height(2.dp))
                                     Text(
-                                        text = "${allContacts.size} contacts available • Tap to select or enter custom number",
+                                        text = RivoText.get(com.grinch.rivo4.R.string.ui_contacts_available_tap_to_select_or_enter_custom_number_134, (allContacts.size).toString()),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -211,7 +212,7 @@ fun ContactSelectionScreen(
                                 ) {
                                     Icon(Icons.Outlined.PersonAdd, contentDescription = null, modifier = Modifier.size(18.dp))
                                     Spacer(Modifier.width(8.dp))
-                                    Text("Create Contact", fontWeight = FontWeight.Bold)
+                                    Text(RivoText.get(com.grinch.rivo4.R.string.ui_create_contact_135), fontWeight = FontWeight.Bold)
                                 }
                             }
                         }
@@ -247,19 +248,19 @@ fun ContactSelectionScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         RivoFilterChip(
-                            label = "All (${allContacts.size})",
+                            label = stringResource(R.string.contacts_all_count, allContacts.size),
                             selected = selectedFilterTab == 0,
                             onClick = { selectedFilterTab = 0 },
                             leadingIcon = { Icon(Icons.Outlined.People, contentDescription = null) }
                         )
                         RivoFilterChip(
-                            label = "Favorites",
+                            label = androidx.compose.ui.res.stringResource(com.grinch.rivo4.R.string.contacts_favorites_label),
                             selected = selectedFilterTab == 1,
                             onClick = { selectedFilterTab = 1 },
                             leadingIcon = { Icon(Icons.Outlined.Star, contentDescription = null) }
                         )
                         RivoFilterChip(
-                            label = "Private",
+                            label = RivoText.get(com.grinch.rivo4.R.string.ui_private_230),
                             selected = selectedFilterTab == 2,
                             onClick = { selectedFilterTab = 2 },
                             leadingIcon = { Icon(Icons.Outlined.Lock, contentDescription = null) }
@@ -326,13 +327,13 @@ fun ContactSelectionScreen(
                                 Spacer(Modifier.width(16.dp))
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = "Use number: $cleanQuery",
+                                        text = RivoText.get(com.grinch.rivo4.R.string.ui_use_number_136, (cleanQuery).toString()),
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold
                                     )
                                     Spacer(Modifier.height(2.dp))
                                     Text(
-                                        text = "Tap to select this custom number",
+                                        text = RivoText.get(com.grinch.rivo4.R.string.ui_tap_to_select_this_custom_number_137),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -488,7 +489,7 @@ fun ContactSelectionScreen(
                                         if (contact.phoneNumbers.isNotEmpty()) {
                                             Text(
                                                 text = if (contact.phoneNumbers.size > 1) {
-                                                    "${formatPhoneNumber(primaryNumber)} (+${contact.phoneNumbers.size - 1} more)"
+                                                    RivoText.get(com.grinch.rivo4.R.string.ui_more_138, (formatPhoneNumber(primaryNumber)).toString(), (contact.phoneNumbers.size - 1).toString())
                                                 } else {
                                                     formatPhoneNumber(primaryNumber)
                                                 },

@@ -1,5 +1,6 @@
 package com.grinch.rivo4.view.components
 
+import com.grinch.rivo4.controller.util.RivoText
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -1161,7 +1162,7 @@ fun RivoInteractiveRoundnessSlider(
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Text(
-                    text = "Live Corner Roundness: ${value.roundToInt()}dp",
+                    text = RivoText.get(com.grinch.rivo4.R.string.ui_live_corner_roundness_dp_90, (value.roundToInt()).toString()),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -1210,7 +1211,7 @@ fun RivoSliderListItem(
     onValueChangeFinished: (() -> Unit)? = null,
     enabled: Boolean = true
 ) {
-    val readout = valueLabel ?: String.format(Locale.getDefault(), "%d", value.roundToInt())
+    val readout = valueLabel ?: String.format(androidx.compose.ui.platform.LocalConfiguration.current.locales[0], "%d", value.roundToInt())
     Column(
         modifier = modifier
             .fillMaxWidth()

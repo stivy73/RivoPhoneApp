@@ -1,5 +1,6 @@
 package com.grinch.rivo4.view.screen.settings
 
+import com.grinch.rivo4.controller.util.RivoText
 import android.content.Intent
 import android.telecom.TelecomManager
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -226,8 +227,8 @@ fun CallAccountsScreen(
                         )
                         HorizontalDivider(Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                         RivoSwitchListItem(
-                            headline = "Pocket Mode",
-                            supporting = "Prevent accidental touches during incoming calls when phone is in pocket",
+                            headline = RivoText.get(com.grinch.rivo4.R.string.ui_pocket_mode_288),
+                            supporting = RivoText.get(com.grinch.rivo4.R.string.ui_prevent_accidental_touches_during_incoming_calls_when_phone_is_289),
                             leadingIcon = Icons.Outlined.ScreenLockPortrait,
                             checked = pocketMode,
                             onCheckedChange = {
@@ -237,8 +238,8 @@ fun CallAccountsScreen(
                         )
                         HorizontalDivider(Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                         RivoListItem(
-                            headline = "Quick Responses",
-                            supporting = "Manage canned SMS decline responses for incoming calls",
+                            headline = RivoText.get(com.grinch.rivo4.R.string.ui_quick_responses_290),
+                            supporting = RivoText.get(com.grinch.rivo4.R.string.ui_manage_canned_sms_decline_responses_for_incoming_calls_291),
                             leadingIcon = Icons.Outlined.Quickreply,
                             onClick = {
                                 navigator.navigate(QuickResponsesScreenDestination())
@@ -246,8 +247,8 @@ fun CallAccountsScreen(
                         )
                         HorizontalDivider(Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                         RivoSwitchListItem(
-                            headline = "Floating Ongoing Calls",
-                            supporting = "Show a movable bubble with call timer and quick controls when leaving call",
+                            headline = RivoText.get(com.grinch.rivo4.R.string.ui_floating_ongoing_calls_292),
+                            supporting = RivoText.get(com.grinch.rivo4.R.string.ui_show_a_movable_bubble_with_call_timer_and_quick_controls_when__293),
                             leadingIcon = Icons.Outlined.PictureInPicture,
                             checked = floatingBubble,
                             onCheckedChange = { enable ->
@@ -264,8 +265,8 @@ fun CallAccountsScreen(
                         )
                         HorizontalDivider(Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                         RivoSwitchListItem(
-                            headline = "Show Daily Stats in Recents",
-                            supporting = "Display summary cards for calls, talk time, and missed calls in the recents screen",
+                            headline = RivoText.get(com.grinch.rivo4.R.string.ui_show_daily_stats_in_recents_294),
+                            supporting = RivoText.get(com.grinch.rivo4.R.string.ui_display_summary_cards_for_calls_talk_time_and_missed_calls_in__295),
                             leadingIcon = Icons.Outlined.Analytics,
                             checked = showRecentsStats,
                             onCheckedChange = {
@@ -331,7 +332,7 @@ fun CallAccountsScreen(
 
                 item {
                     RivoSectionHeader(
-                        title = "Work in Progress",
+                        title = RivoText.get(com.grinch.rivo4.R.string.ui_work_in_progress_296),
                         icon = Icons.Outlined.Construction
                     )
                     Spacer(Modifier.height(8.dp))

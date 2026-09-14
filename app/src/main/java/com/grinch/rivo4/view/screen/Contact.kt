@@ -1,5 +1,6 @@
 package com.grinch.rivo4.view.screen
 
+import com.grinch.rivo4.controller.util.RivoText
 import android.Manifest
 import android.accounts.Account
 import androidx.activity.compose.BackHandler
@@ -704,7 +705,7 @@ fun ContactManagementTopCard(
                     ) {
                         Icon(
                             Icons.Outlined.Close,
-                            contentDescription = "Dismiss",
+                            contentDescription = RivoText.get(com.grinch.rivo4.R.string.ui_dismiss_183),
                             modifier = Modifier.size(18.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -773,7 +774,7 @@ fun ContactManagementTopCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Manage storage & tools",
+                        text = RivoText.get(com.grinch.rivo4.R.string.ui_manage_storage_tools_184),
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.primary

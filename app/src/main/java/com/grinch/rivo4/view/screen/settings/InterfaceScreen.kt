@@ -1,5 +1,6 @@
 package com.grinch.rivo4.view.screen.settings
 
+import com.grinch.rivo4.controller.util.RivoText
 import android.app.Activity
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -82,7 +83,7 @@ fun InterfaceScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Theme & Appearance", fontWeight = FontWeight.Bold) },
+                title = { Text(RivoText.get(com.grinch.rivo4.R.string.ui_theme_appearance_282), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = { navigator.navigateUp() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
@@ -203,17 +204,17 @@ fun InterfaceScreen(
 
                 // 3. Related Styling Links
                 item {
-                    RivoExpressiveCard(title = "More Display Settings") {
+                    RivoExpressiveCard(title = RivoText.get(com.grinch.rivo4.R.string.ui_more_display_settings_283)) {
                         RivoListItem(
-                            headline = "Navigation Bar",
-                            supporting = "Floating bar style, blur effect, roundness & tab layout",
+                            headline = RivoText.get(com.grinch.rivo4.R.string.ui_navigation_bar_284),
+                            supporting = RivoText.get(com.grinch.rivo4.R.string.ui_floating_bar_style_blur_effect_roundness_tab_layout_285),
                             leadingIcon = Icons.Outlined.Dock,
                             onClick = { navigator.navigate(BottomNavScreenDestination) }
                         )
                         RivoDivider(Modifier.padding(horizontal = 16.dp))
                         RivoListItem(
-                            headline = "Avatars & Contact Cards",
-                            supporting = "11 avatar shapes, contact photos, initials & cards",
+                            headline = RivoText.get(com.grinch.rivo4.R.string.ui_avatars_contact_cards_286),
+                            supporting = RivoText.get(com.grinch.rivo4.R.string.ui_11_avatar_shapes_contact_photos_initials_cards_287),
                             leadingIcon = Icons.Outlined.AccountCircle,
                             onClick = { navigator.navigate(AvatarSettingsScreenDestination) }
                         )

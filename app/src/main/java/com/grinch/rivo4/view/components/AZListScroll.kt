@@ -1,5 +1,6 @@
 package com.grinch.rivo4.view.components
 
+import com.grinch.rivo4.controller.util.RivoText
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
@@ -59,6 +60,7 @@ fun AZListScroll(
     val displayOrder = remember(settingsState) { prefs.getInt(PreferenceManager.KEY_CONTACT_DISPLAY_ORDER, 0) }
 
     val context = LocalContext.current
+    val rivoResources = androidx.compose.ui.platform.LocalResources.current
     val callLauncher = rememberCallLauncher()
     val messageLauncher = rememberMessageLauncher()
     val videoLauncher = rememberVideoLauncher()
@@ -171,7 +173,7 @@ fun AZListScroll(
                                             SwipeActionType.COPY_NUMBER -> {
                                                 if (phone.isNotBlank()) {
                                                     clipboardManager.setText(AnnotatedString(phone))
-                                                    Toast.makeText(context, context.getString(R.string.number_copied_toast), Toast.LENGTH_SHORT).show()
+                                                    Toast.makeText(context, rivoResources.getString(R.string.number_copied_toast), Toast.LENGTH_SHORT).show()
                                                 }
                                             }
                                             SwipeActionType.DELETE -> {}
@@ -188,14 +190,14 @@ fun AZListScroll(
                                             if (contact.isHidden) {
                                                 Icon(
                                                     imageVector = Icons.Outlined.VisibilityOff,
-                                                    contentDescription = "Private Storage (Hidden)",
+                                                    contentDescription = RivoText.get(com.grinch.rivo4.R.string.ui_private_storage_hidden_87),
                                                     tint = MaterialTheme.colorScheme.tertiary,
                                                     modifier = Modifier.size(18.dp)
                                                 )
                                             } else if (contact.isPrivate) {
                                                 Icon(
                                                     imageVector = Icons.Outlined.Lock,
-                                                    contentDescription = "Private Storage",
+                                                    contentDescription = RivoText.get(com.grinch.rivo4.R.string.ui_private_storage_88),
                                                     tint = MaterialTheme.colorScheme.primary,
                                                     modifier = Modifier.size(18.dp)
                                                 )

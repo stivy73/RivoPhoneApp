@@ -13,10 +13,16 @@ class RivoApp : Application() {
             private set
     }
 
+    override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
+        super.onConfigurationChanged(newConfig)
+        com.grinch.rivo4.controller.util.RivoText.resources = resources
+    }
+
     private var resumedActivities = 0
 
     override fun onCreate() {
         super.onCreate()
+        com.grinch.rivo4.controller.util.RivoText.resources = resources
         startKoin {
             androidContext(this@RivoApp)
             modules(appModule)

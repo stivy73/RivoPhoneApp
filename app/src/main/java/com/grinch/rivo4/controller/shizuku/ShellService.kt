@@ -1,3 +1,12 @@
+/*
+ * ShizuCallRecorder: FOSS Call recording powered through ADB/Shizuku!
+ *  Copyright (C) 2026-present kitsumed (Med)
+ *  This software is licensed under the GNU General Public License v3 or later, with additional terms as permitted under Section 7.
+ *  The full license text is available in app/src/main/assets/licenses/ShizuCallRecorder.txt.
+ * Modified for Rivo Personal, 2026-09-14; derived only from v1.3.3 / dd940fe2caa8aa1b4c7143ad5123c9923b343abd.
+ *  This software is distributed WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ */
+
 package com.grinch.rivo4.controller.shizuku
 
 import android.content.Context
@@ -17,7 +26,7 @@ class ShellService : IShellService.Stub {
     @Keep
     constructor(context: Context?)
 
-    override fun startCapture(
+    override fun startRecording(
         audioSource: String?,
         audioCodec: String?,
         audioBitRate: Int,
@@ -25,7 +34,7 @@ class ShellService : IShellService.Stub {
         debug: Boolean
     ): ParcelFileDescriptor? {
         val source = audioSource ?: "voice-call"
-        val codec = audioCodec ?: "aac"
+        val codec = audioCodec ?: "opus"
         val path = serverPath ?: return null
 
         return pipeline.startCapture(
@@ -33,16 +42,16 @@ class ShellService : IShellService.Stub {
             audioCodec = codec,
             audioBitRate = audioBitRate,
             serverPath = path,
-            debug = debug
+            isDebuggingModeEnabled = debug
         )
     }
 
-    override fun stopCapture() {
+    override fun stopRecording() {
         pipeline.stopCapture()
     }
 
     override fun destroy() {
-        stopCapture()
+        stopRecording()
         exitProcess(0)
     }
 }

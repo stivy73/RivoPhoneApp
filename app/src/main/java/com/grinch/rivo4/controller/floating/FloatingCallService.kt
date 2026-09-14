@@ -1,5 +1,6 @@
 package com.grinch.rivo4.controller.floating
 
+import com.grinch.rivo4.controller.util.RivoText
 import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationChannel
@@ -124,10 +125,10 @@ class FloatingCallService : Service(), KoinComponent {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 channelId,
-                "Floating Call Bubble",
+                RivoText.get(com.grinch.rivo4.R.string.ui_floating_call_bubble_64),
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "Shows floating controls for active call"
+                description = RivoText.get(com.grinch.rivo4.R.string.ui_shows_floating_controls_for_active_call_65)
                 setShowBadge(false)
             }
             notificationManager.createNotificationChannel(channel)
@@ -144,8 +145,8 @@ class FloatingCallService : Service(), KoinComponent {
         )
 
         val notification: Notification = NotificationCompat.Builder(this, channelId)
-            .setContentTitle("Ongoing Call")
-            .setContentText("Tap to return to call")
+            .setContentTitle(RivoText.get(com.grinch.rivo4.R.string.ui_ongoing_call_66))
+            .setContentText(RivoText.get(com.grinch.rivo4.R.string.ui_tap_to_return_to_call_67))
             .setSmallIcon(R.drawable.ic_call_ongoing)
             .setContentIntent(pendingIntent)
             .setOngoing(true)
@@ -481,7 +482,7 @@ class FloatingCallService : Service(), KoinComponent {
         // 1. Back to call
         val (backRow, backIcon, backText) = createRow(
             iconRes = R.drawable.ic_floating_back_to_call,
-            label = "Back to call",
+            label = getString(R.string.ui_back_to_call),
             density = density,
             onClick = {
                 returnToCallActivity()
@@ -495,7 +496,7 @@ class FloatingCallService : Service(), KoinComponent {
         // 2. Mute
         val (mRow, mIcon, mText) = createRow(
             iconRes = R.drawable.ic_floating_mic_off,
-            label = "Mute",
+            label = getString(R.string.action_mute),
             density = density,
             onClick = {
                 val currentMute = CallService.audioState.value?.isMuted == true
@@ -511,7 +512,7 @@ class FloatingCallService : Service(), KoinComponent {
         // 3. Speaker
         val (sRow, sIcon, sText) = createRow(
             iconRes = R.drawable.ic_floating_speaker,
-            label = "Speaker",
+            label = getString(R.string.audio_route_speaker),
             density = density,
             onClick = {
                 CallService.cycleAudioRoute()
@@ -553,7 +554,7 @@ class FloatingCallService : Service(), KoinComponent {
         endCallRow?.addView(endCallIcon)
 
         val endCallText = TextView(this).apply {
-            text = "End call"
+            text = RivoText.get(com.grinch.rivo4.R.string.ui_end_call_68)
             setTextColor(Color.WHITE)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
             typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.BOLD)
@@ -841,7 +842,7 @@ class FloatingCallService : Service(), KoinComponent {
                 }
             } else null
 
-            cachedDisplayName = contact?.name ?: if (number.isNotEmpty()) formatPhoneNumber(number) else "Active Call"
+            cachedDisplayName = contact?.name ?: if (number.isNotEmpty()) formatPhoneNumber(number) else RivoText.get(com.grinch.rivo4.R.string.ui_active_call_71)
             cachedPhotoUri = contact?.photoUri
 
             cachedPhotoBitmap = try {

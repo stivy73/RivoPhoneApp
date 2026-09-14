@@ -1,5 +1,6 @@
 package com.grinch.rivo4.view.screen.settings
 
+import com.grinch.rivo4.controller.util.RivoText
 import android.Manifest
 import android.content.Context
 import android.content.Intent
@@ -55,6 +56,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.grinch.rivo4.R
+import com.grinch.rivo4.controller.recording.*
+import com.grinch.rivo4.controller.shizuku.ScrcpyAudioCodec
+import com.grinch.rivo4.controller.shizuku.ScrcpyAudioSource
 import com.grinch.rivo4.controller.CallRecorder
 import com.grinch.rivo4.controller.shizuku.ShizukuConnectionManager
 import com.grinch.rivo4.controller.util.OemPermissionHelper
@@ -122,6 +126,7 @@ fun CallRecordingsContent(
     var showFromDatePicker by remember { mutableStateOf(false) }
     var showToDatePicker by remember { mutableStateOf(false) }
     var refreshKey by remember { mutableIntStateOf(0) }
+    var statusTick by remember { mutableIntStateOf(0) }
     var recordings by remember { mutableStateOf<List<File>>(emptyList()) }
     var pendingDelete by remember { mutableStateOf<File?>(null) }
     var showDeleteAllConfirm by remember { mutableStateOf(false) }
@@ -132,8 +137,8 @@ fun CallRecordingsContent(
     }
 
     // Shizuku & Recording Preference States
-    val shizukuAvailable = remember(settingsState, refreshKey) { ShizukuConnectionManager.isAvailable() }
-    val shizukuPermissionGranted = remember(settingsState, refreshKey) { ShizukuConnectionManager.hasPermission(context) }
+    val shizukuAvailable = remember(settingsState, refreshKey, statusTick) { ShizukuConnectionManager.isAvailable() }
+    val shizukuPermissionGranted = remember(settingsState, refreshKey, statusTick) { ShizukuConnectionManager.hasPermission(context) }
 
     // Auto-refresh recordings when returning to the screen
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
@@ -159,7 +164,13 @@ fun CallRecordingsContent(
         mutableIntStateOf(prefs.getInt(PreferenceManager.KEY_CALL_RECORDING_FILTER, PreferenceManager.RECORD_FILTER_ALL))
     }
     var minDurationFilter by remember(settingsState) { mutableIntStateOf(prefs.getInt("call_recording_min_duration", 0)) }
-    var bitrate by remember(settingsState) { mutableIntStateOf(prefs.getInt("call_recording_bitrate", 128000)) }
+    var bitrate by remember(settingsState) { mutableIntStateOf(prefs.getInt("call_recording_bitrate", 16000)) }
+
+    val recorderState by CallRecorder.state.collectAsState()
+    val savedRevision by CallRecorder.recordingsChanged.collectAsState()
+    var sourceKey by remember(settingsState) { mutableStateOf(prefs.getString("call_recording_source", "voice-call") ?: "voice-call") }
+    var codecKey by remember(settingsState) { mutableStateOf(prefs.getString("call_recording_codec", "opus") ?: "opus") }
+    LaunchedEffect(Unit) { while (true) { delay(1000); statusTick++ } }
 
     val shareTitle = stringResource(R.string.call_recordings_share)
 
@@ -173,24 +184,27 @@ fun CallRecordingsContent(
 
     DisposableEffect(activePlayingFile) {
         if (activePlayingFile != null) {
-            val mp = MediaPlayer().apply {
-                try {
-                    setDataSource(context, Uri.fromFile(activePlayingFile))
-                    prepare()
-                    start()
-                    this@apply.playbackParams = this@apply.playbackParams.setSpeed(playbackSpeed)
-                } catch (e: Exception) {
-                }
+            val mp = MediaPlayer()
+            val reportPlaybackError = {
+                isPlaying = false
+                android.widget.Toast.makeText(context, RivoText.get(R.string.recorder_player_error), android.widget.Toast.LENGTH_LONG).show()
             }
-            mediaPlayer = mp
-            isPlaying = mp.isPlaying
-            durationMs = runCatching { mp.duration }.getOrDefault(0)
-
+            try {
+                mp.setOnCompletionListener { isPlaying = false; currentPositionMs = durationMs }
+                mp.setOnErrorListener { _, _, _ -> reportPlaybackError(); true }
+                mp.setDataSource(context, Uri.fromFile(activePlayingFile))
+                mp.prepare()
+                mp.playbackParams = mp.playbackParams.setSpeed(playbackSpeed)
+                mp.start()
+                mediaPlayer = mp
+                isPlaying = true
+                durationMs = mp.duration
+            } catch (_: Exception) {
+                reportPlaybackError()
+            }
             onDispose {
-                runCatching {
-                    mp.stop()
-                    mp.release()
-                }
+                runCatching { mp.stop() }
+                mp.release()
                 mediaPlayer = null
                 isPlaying = false
             }
@@ -213,8 +227,8 @@ fun CallRecordingsContent(
         }
     }
 
-    LaunchedEffect(refreshKey) {
-        recordings = CallRecorder.listRecordings(context)
+    LaunchedEffect(savedRevision, showingRecordingsList, refreshKey) {
+        recordings = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { CallRecorder.listRecordings(context) }
     }
 
     val effectiveFrom = remember(fromDateMillis, toDateMillis) {
@@ -257,7 +271,7 @@ fun CallRecordingsContent(
                 TopAppBar(
                     title = {
                         Text(
-                            text = if (showingRecordingsList) "Saved Call Recordings" else "Call Recording Settings",
+                            text = if (showingRecordingsList) RivoText.get(com.grinch.rivo4.R.string.ui_saved_call_recordings_369) else RivoText.get(com.grinch.rivo4.R.string.ui_call_recording_settings_370),
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
                         )
@@ -280,13 +294,13 @@ fun CallRecordingsContent(
                             IconButton(onClick = { showDeleteAllConfirm = true }) {
                                 Icon(
                                     Icons.Outlined.DeleteSweep,
-                                    contentDescription = "Delete all recordings",
+                                    contentDescription = RivoText.get(com.grinch.rivo4.R.string.ui_delete_all_recordings_371),
                                     tint = MaterialTheme.colorScheme.error
                                 )
                             }
                         }
                         IconButton(onClick = { refreshKey++ }) {
-                            Icon(Icons.Outlined.Refresh, contentDescription = "Refresh recordings")
+                            Icon(Icons.Outlined.Refresh, contentDescription = RivoText.get(com.grinch.rivo4.R.string.ui_refresh_recordings_372))
                         }
                     }
                 )
@@ -332,7 +346,7 @@ fun CallRecordingsContent(
                                         tint = MaterialTheme.colorScheme.primary
                                     )
                                     Text(
-                                        text = "Filter Recordings",
+                                        text = RivoText.get(com.grinch.rivo4.R.string.ui_filter_recordings_373),
                                         style = MaterialTheme.typography.titleSmall,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.onSurface
@@ -371,7 +385,7 @@ fun CallRecordingsContent(
                                             modifier = Modifier.size(16.dp)
                                         )
                                         Spacer(Modifier.width(4.dp))
-                                        Text("Reset", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                                        Text(RivoText.get(com.grinch.rivo4.R.string.ui_reset_366), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
                                     }
                                 }
                             }
@@ -406,12 +420,12 @@ fun CallRecordingsContent(
                                         Spacer(Modifier.width(8.dp))
                                         Column(modifier = Modifier.weight(1f)) {
                                             Text(
-                                                text = "From",
+                                                text = RivoText.get(com.grinch.rivo4.R.string.ui_from_375),
                                                 style = MaterialTheme.typography.labelSmall,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                             Text(
-                                                text = if (fromDateMillis != null) formatDateHeader(context, fromDateMillis!!) else "Start date",
+                                                text = if (fromDateMillis != null) formatDateHeader(context, fromDateMillis!!) else RivoText.get(com.grinch.rivo4.R.string.ui_start_date_376),
                                                 style = MaterialTheme.typography.bodySmall,
                                                 fontWeight = if (fromDateMillis != null) FontWeight.SemiBold else FontWeight.Normal,
                                                 color = if (fromDateMillis != null) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.outline,
@@ -453,12 +467,12 @@ fun CallRecordingsContent(
                                         Spacer(Modifier.width(8.dp))
                                         Column(modifier = Modifier.weight(1f)) {
                                             Text(
-                                                text = "To",
+                                                text = RivoText.get(com.grinch.rivo4.R.string.ui_to_377),
                                                 style = MaterialTheme.typography.labelSmall,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                             Text(
-                                                text = if (toDateMillis != null) formatDateHeader(context, toDateMillis!!) else "End date",
+                                                text = if (toDateMillis != null) formatDateHeader(context, toDateMillis!!) else RivoText.get(com.grinch.rivo4.R.string.ui_end_date_378),
                                                 style = MaterialTheme.typography.bodySmall,
                                                 fontWeight = if (toDateMillis != null) FontWeight.SemiBold else FontWeight.Normal,
                                                 color = if (toDateMillis != null) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.outline,
@@ -483,7 +497,7 @@ fun CallRecordingsContent(
                                             toDateMillis = null
                                             datePreset = DateFilterPreset.ALL
                                         },
-                                        label = { Text("All Dates") },
+                                        label = { Text(RivoText.get(com.grinch.rivo4.R.string.ui_all_dates_379)) },
                                         leadingIcon = if (datePreset == DateFilterPreset.ALL) {
                                             { Icon(Icons.Outlined.Done, contentDescription = null, modifier = Modifier.size(16.dp)) }
                                         } else null,
@@ -510,7 +524,7 @@ fun CallRecordingsContent(
                                             toDateMillis = end
                                             datePreset = DateFilterPreset.TODAY
                                         },
-                                        label = { Text("Today") },
+                                        label = { Text(RivoText.get(com.grinch.rivo4.R.string.ui_today_380)) },
                                         leadingIcon = if (datePreset == DateFilterPreset.TODAY) {
                                             { Icon(Icons.Outlined.Done, contentDescription = null, modifier = Modifier.size(16.dp)) }
                                         } else null,
@@ -538,7 +552,7 @@ fun CallRecordingsContent(
                                             toDateMillis = end
                                             datePreset = DateFilterPreset.LAST_7_DAYS
                                         },
-                                        label = { Text("Last 7 Days") },
+                                        label = { Text(RivoText.get(com.grinch.rivo4.R.string.ui_last_7_days_381)) },
                                         leadingIcon = if (datePreset == DateFilterPreset.LAST_7_DAYS) {
                                             { Icon(Icons.Outlined.Done, contentDescription = null, modifier = Modifier.size(16.dp)) }
                                         } else null,
@@ -566,7 +580,7 @@ fun CallRecordingsContent(
                                             toDateMillis = end
                                             datePreset = DateFilterPreset.THIS_MONTH
                                         },
-                                        label = { Text("This Month") },
+                                        label = { Text(RivoText.get(com.grinch.rivo4.R.string.ui_this_month_13)) },
                                         leadingIcon = if (datePreset == DateFilterPreset.THIS_MONTH) {
                                             { Icon(Icons.Outlined.Done, contentDescription = null, modifier = Modifier.size(16.dp)) }
                                         } else null,
@@ -578,7 +592,7 @@ fun CallRecordingsContent(
                                         FilterChip(
                                             selected = true,
                                             onClick = {},
-                                            label = { Text("Custom Range") },
+                                            label = { Text(RivoText.get(com.grinch.rivo4.R.string.ui_custom_range_382)) },
                                             leadingIcon = { Icon(Icons.Outlined.Done, contentDescription = null, modifier = Modifier.size(16.dp)) },
                                             shape = CircleShape
                                         )
@@ -591,7 +605,7 @@ fun CallRecordingsContent(
                                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                     Text(
-                                        text = "Contact",
+                                        text = RivoText.get(com.grinch.rivo4.R.string.ui_contact_383),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -603,7 +617,7 @@ fun CallRecordingsContent(
                                             FilterChip(
                                                 selected = selectedFilterNumber == null,
                                                 onClick = { selectedFilterNumber = null },
-                                                label = { Text("All Contacts") },
+                                                label = { Text(RivoText.get(com.grinch.rivo4.R.string.ui_all_contacts_384)) },
                                                 leadingIcon = if (selectedFilterNumber == null) {
                                                     { Icon(Icons.Outlined.Done, contentDescription = null, modifier = Modifier.size(16.dp)) }
                                                 } else null,
@@ -654,14 +668,14 @@ fun CallRecordingsContent(
                             }
                             Spacer(Modifier.height(14.dp))
                             Text(
-                                text = if (recordings.isEmpty()) stringResource(R.string.call_recordings_empty) else "No matching recordings",
+                                text = if (recordings.isEmpty()) stringResource(R.string.call_recordings_empty) else RivoText.get(com.grinch.rivo4.R.string.ui_no_matching_recordings_385),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
                             )
                             Spacer(Modifier.height(6.dp))
                             Text(
                                 text = if (recordings.isEmpty()) stringResource(R.string.call_recordings_empty_description)
-                                else "No recordings match your selected date or contact filter.",
+                                else RivoText.get(com.grinch.rivo4.R.string.ui_no_recordings_match_your_selected_date_or_contact_filter_386),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 textAlign = TextAlign.Center
@@ -679,7 +693,7 @@ fun CallRecordingsContent(
                                 ) {
                                     Icon(Icons.Outlined.RestartAlt, contentDescription = null, modifier = Modifier.size(16.dp))
                                     Spacer(Modifier.width(6.dp))
-                                    Text("Reset Filters")
+                                    Text(RivoText.get(com.grinch.rivo4.R.string.ui_reset_filters_387))
                                 }
                             }
                         }
@@ -787,16 +801,16 @@ fun CallRecordingsContent(
                                 Spacer(Modifier.width(12.dp))
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = if (shizukuAvailable && shizukuPermissionGranted) "Shizuku ADB Service Active"
-                                        else if (!shizukuAvailable) "Shizuku Service Required"
-                                        else "Shizuku Permission Required",
+                                        text = stringResource(if (shizukuAvailable && shizukuPermissionGranted) R.string.recorder_shizuku_ready
+                                            else if (shizukuAvailable) R.string.recorder_shizuku_permission
+                                            else if (ShizukuConnectionManager.getPackageName(context) != null) R.string.recorder_shizuku_stopped
+                                            else R.string.recorder_shizuku_missing),
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold
                                     )
                                     Spacer(Modifier.height(2.dp))
                                     Text(
-                                        text = if (shizukuAvailable && shizukuPermissionGranted) "Elevated internal call audio recording is enabled."
-                                        else "Android restricts call audio. Shizuku is required to capture crystal-clear internal call audio.",
+                                        text = stringResource(R.string.recorder_prerequisite),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -811,13 +825,16 @@ fun CallRecordingsContent(
                                 ) {
                                     if (!shizukuAvailable) {
                                         Button(
-                                            onClick = { openLink(context, "https://shizuku.rikka.app/") },
+                                            onClick = {
+                                                val launch = ShizukuConnectionManager.getPackageName(context)?.let { context.packageManager.getLaunchIntentForPackage(it) }
+                                                if (launch != null) context.startActivity(launch) else openLink(context, "https://shizuku.rikka.app/")
+                                            },
                                             modifier = Modifier.weight(1f),
                                             shape = CircleShape
                                         ) {
                                             Icon(Icons.Outlined.Download, contentDescription = null, modifier = Modifier.size(16.dp))
                                             Spacer(Modifier.width(6.dp))
-                                            Text("Install Shizuku")
+                                            Text(stringResource(R.string.recorder_open_shizuku))
                                         }
                                     }
                                     if (shizukuAvailable) {
@@ -831,12 +848,60 @@ fun CallRecordingsContent(
                                         ) {
                                             Icon(Icons.Outlined.Security, contentDescription = null, modifier = Modifier.size(16.dp))
                                             Spacer(Modifier.width(6.dp))
-                                            Text("Grant Permission")
+                                            Text(RivoText.get(com.grinch.rivo4.R.string.ui_grant_permission_388))
                                         }
                                     }
                                 }
                             }
                         }
+                    }
+                }
+
+                item {
+                    RivoExpressiveCard {
+                        RivoSelectListItem(
+                            headline = stringResource(R.string.recorder_source),
+                            supporting = stringResource(ScrcpyAudioSource.fromKey(sourceKey).descriptionResId),
+                            leadingIcon = Icons.Outlined.Mic,
+                            options = ScrcpyAudioSource.entries.filter { Build.VERSION.SDK_INT >= it.minApi && (it.maxApi == null || Build.VERSION.SDK_INT <= it.maxApi) }
+                                .map { stringResource(it.titleResId) to it.ordinal },
+                            selectedValue = ScrcpyAudioSource.fromKey(sourceKey).ordinal,
+                            onValueChange = { sourceKey = ScrcpyAudioSource.entries[it].cliKey; prefs.setString("call_recording_source", sourceKey) }
+                        )
+                        RivoSelectListItem(
+                            headline = stringResource(R.string.recorder_codec),
+                            supporting = stringResource(R.string.recorder_prerequisite),
+                            leadingIcon = Icons.Outlined.HighQuality,
+                            options = ScrcpyAudioCodec.entries.map { stringResource(it.titleResId) to it.ordinal },
+                            selectedValue = ScrcpyAudioCodec.fromKey(codecKey).ordinal,
+                            onValueChange = {
+                                codecKey = ScrcpyAudioCodec.entries[it].cliKey; prefs.setString("call_recording_codec", codecKey)
+                                bitrate = ScrcpyAudioCodec.fromKey(codecKey).defaultBitRate
+                                prefs.setInt("call_recording_bitrate", bitrate)
+                            }
+                        )
+                        RivoSelectListItem(
+                            headline = stringResource(R.string.recorder_folder),
+                            supporting = stringResource(R.string.recorder_storage_hint),
+                            leadingIcon = Icons.Outlined.Folder,
+                            options = listOf(
+                                stringResource(R.string.recorder_storage_auto) to 0,
+                                stringResource(R.string.recorder_storage_app) to 1,
+                                stringResource(R.string.recorder_storage_internal) to 2,
+                                stringResource(R.string.recorder_storage_public) to 3
+                            ),
+                            selectedValue = prefs.getInt("call_recording_folder", 0),
+                            onValueChange = { prefs.setInt("call_recording_folder", it) }
+                        )
+                        val folderPath = remember(settingsState, refreshKey) {
+                            runCatching { CallRecorder.getRecordingsDirectory(context).absolutePath }.getOrNull()
+                        }
+                        Text(if (folderPath != null) stringResource(R.string.recorder_folder_path, folderPath)
+                            else stringResource(R.string.recorder_error_storage))
+                        Text(stringResource(R.string.recorder_diagnostics), style = MaterialTheme.typography.titleMedium)
+                        Text(stringResource(RecordingStrings.phase(recorderState.phase)))
+                        recorderState.error?.let { Text(stringResource(RecordingStrings.error(it)), color = MaterialTheme.colorScheme.error) }
+                        Text(stringResource(R.string.recorder_diagnostic_values, "4.0", sourceKey, codecKey, bitrate))
                     }
                 }
 
@@ -873,13 +938,13 @@ fun CallRecordingsContent(
                                     Spacer(Modifier.width(12.dp))
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
-                                            text = "Direct Storage Access Recommended",
+                                            text = RivoText.get(com.grinch.rivo4.R.string.ui_direct_storage_access_recommended_389),
                                             style = MaterialTheme.typography.titleMedium,
                                             fontWeight = FontWeight.Bold
                                         )
                                         Spacer(Modifier.height(2.dp))
                                         Text(
-                                            text = "Grant All Files Access to store call recordings directly into Internal Storage / ${CallRecorder.DIRECTORY_NAME} without Scoped Storage restrictions.",
+                                            text = stringResource(R.string.recorder_files_permission_hint, CallRecorder.DIRECTORY_NAME),
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
@@ -909,7 +974,7 @@ fun CallRecordingsContent(
                                 ) {
                                     Icon(Icons.Outlined.Security, contentDescription = null, modifier = Modifier.size(16.dp))
                                     Spacer(Modifier.width(6.dp))
-                                    Text("Grant Storage Access")
+                                    Text(RivoText.get(com.grinch.rivo4.R.string.ui_grant_storage_access_390))
                                 }
                             }
                         }
@@ -946,7 +1011,7 @@ fun CallRecordingsContent(
                                         Spacer(Modifier.width(12.dp))
                                         Column(modifier = Modifier.weight(1f)) {
                                             Text(
-                                                text = "${OemPermissionHelper.getOemBrandDisplayName()} Optimization",
+                                                text = RivoText.get(com.grinch.rivo4.R.string.ui_optimization_391, (OemPermissionHelper.getOemBrandDisplayName()).toString()),
                                                 style = MaterialTheme.typography.titleMedium,
                                                 fontWeight = FontWeight.Bold
                                             )
@@ -965,7 +1030,7 @@ fun CallRecordingsContent(
                                         ) {
                                             Icon(
                                                 Icons.Outlined.Close,
-                                                contentDescription = "Dismiss",
+                                                contentDescription = RivoText.get(com.grinch.rivo4.R.string.ui_dismiss_183),
                                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 modifier = Modifier.size(20.dp)
                                             )
@@ -1028,19 +1093,19 @@ fun CallRecordingsContent(
                             Spacer(Modifier.width(12.dp))
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "Saved Call Recordings",
+                                    text = RivoText.get(com.grinch.rivo4.R.string.ui_saved_call_recordings_369),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    text = "${recordings.size} recordings available",
+                                    text = RivoText.get(com.grinch.rivo4.R.string.ui_recordings_available_392, (recordings.size).toString()),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                contentDescription = "Open Recordings",
+                                contentDescription = RivoText.get(com.grinch.rivo4.R.string.ui_open_recordings_393),
                                 tint = MaterialTheme.colorScheme.primary
                             )
                         }
@@ -1050,7 +1115,7 @@ fun CallRecordingsContent(
                 // 4. Recording Controls Section
                 item {
                     RivoSectionHeader(
-                        title = "Recording Controls",
+                        title = RivoText.get(com.grinch.rivo4.R.string.ui_recording_controls_394),
                         icon = Icons.Outlined.SettingsVoice
                     )
                     Spacer(Modifier.height(4.dp))
@@ -1059,8 +1124,8 @@ fun CallRecordingsContent(
                         shape = RoundedCornerShape(24.dp)
                     ) {
                         RivoSwitchListItem(
-                            headline = "Enable Call Recording",
-                            supporting = "Allow recording calls and show Record button during active calls",
+                            headline = RivoText.get(com.grinch.rivo4.R.string.ui_enable_call_recording_395),
+                            supporting = RivoText.get(com.grinch.rivo4.R.string.ui_allow_recording_calls_and_show_record_button_during_active_cal_396),
                             leadingIcon = Icons.Outlined.Mic,
                             checked = callRecordingEnabled,
                             onCheckedChange = {
@@ -1070,8 +1135,8 @@ fun CallRecordingsContent(
                         )
                         RivoDivider(Modifier.padding(horizontal = 16.dp))
                         RivoSwitchListItem(
-                            headline = "Auto-Record Calls",
-                            supporting = "Automatically record calls as soon as they connect",
+                            headline = RivoText.get(com.grinch.rivo4.R.string.ui_auto_record_calls_397),
+                            supporting = RivoText.get(com.grinch.rivo4.R.string.ui_automatically_record_calls_as_soon_as_they_connect_398),
                             leadingIcon = Icons.Outlined.PlayCircleOutline,
                             checked = autoRecordEnabled,
                             onCheckedChange = {
@@ -1082,21 +1147,21 @@ fun CallRecordingsContent(
                         if (autoRecordEnabled) {
                             RivoDivider(Modifier.padding(horizontal = 16.dp))
                             RivoSelectListItem(
-                                headline = "Auto-Record Filter",
+                                headline = RivoText.get(com.grinch.rivo4.R.string.ui_auto_record_filter_399),
                                 supporting = when (autoRecordFilter) {
-                                    PreferenceManager.RECORD_FILTER_INCOMING_ONLY -> "Recording incoming calls only"
-                                    PreferenceManager.RECORD_FILTER_OUTGOING_ONLY -> "Recording outgoing calls only"
-                                    PreferenceManager.RECORD_FILTER_UNKNOWN_ONLY -> "Recording unknown numbers only"
-                                    PreferenceManager.RECORD_FILTER_CONTACTS_ONLY -> "Recording saved contacts only"
-                                    else -> "Recording all calls"
+                                    PreferenceManager.RECORD_FILTER_INCOMING_ONLY -> RivoText.get(com.grinch.rivo4.R.string.ui_recording_incoming_calls_only_400)
+                                    PreferenceManager.RECORD_FILTER_OUTGOING_ONLY -> RivoText.get(com.grinch.rivo4.R.string.ui_recording_outgoing_calls_only_401)
+                                    PreferenceManager.RECORD_FILTER_UNKNOWN_ONLY -> RivoText.get(com.grinch.rivo4.R.string.ui_recording_unknown_numbers_only_402)
+                                    PreferenceManager.RECORD_FILTER_CONTACTS_ONLY -> RivoText.get(com.grinch.rivo4.R.string.ui_recording_saved_contacts_only_403)
+                                    else -> RivoText.get(com.grinch.rivo4.R.string.ui_recording_all_calls_404)
                                 },
                                 leadingIcon = Icons.Outlined.FilterList,
                                 options = listOf(
-                                    "All Calls" to PreferenceManager.RECORD_FILTER_ALL,
-                                    "Incoming Calls Only" to PreferenceManager.RECORD_FILTER_INCOMING_ONLY,
-                                    "Outgoing Calls Only" to PreferenceManager.RECORD_FILTER_OUTGOING_ONLY,
-                                    "Unknown Numbers Only" to PreferenceManager.RECORD_FILTER_UNKNOWN_ONLY,
-                                    "Saved Contacts Only" to PreferenceManager.RECORD_FILTER_CONTACTS_ONLY
+                                    RivoText.get(com.grinch.rivo4.R.string.ui_all_calls_405) to PreferenceManager.RECORD_FILTER_ALL,
+                                    RivoText.get(com.grinch.rivo4.R.string.ui_incoming_calls_only_406) to PreferenceManager.RECORD_FILTER_INCOMING_ONLY,
+                                    RivoText.get(com.grinch.rivo4.R.string.ui_outgoing_calls_only_407) to PreferenceManager.RECORD_FILTER_OUTGOING_ONLY,
+                                    RivoText.get(com.grinch.rivo4.R.string.ui_unknown_numbers_only_408) to PreferenceManager.RECORD_FILTER_UNKNOWN_ONLY,
+                                    RivoText.get(com.grinch.rivo4.R.string.ui_saved_contacts_only_409) to PreferenceManager.RECORD_FILTER_CONTACTS_ONLY
                                 ),
                                 selectedValue = autoRecordFilter,
                                 onValueChange = {
@@ -1111,7 +1176,7 @@ fun CallRecordingsContent(
                 // 5. Audio Quality & Filters Section
                 item {
                     RivoSectionHeader(
-                        title = "Audio Quality & Filters",
+                        title = RivoText.get(com.grinch.rivo4.R.string.ui_audio_quality_filters_410),
                         icon = Icons.Outlined.GraphicEq
                     )
                     Spacer(Modifier.height(4.dp))
@@ -1120,15 +1185,20 @@ fun CallRecordingsContent(
                         shape = RoundedCornerShape(24.dp)
                     ) {
                         RivoSelectListItem(
-                            headline = "Audio Bitrate",
-                            supporting = "Higher bitrate yields clearer audio output",
+                            headline = RivoText.get(com.grinch.rivo4.R.string.ui_audio_bitrate_411),
+                            supporting = RivoText.get(com.grinch.rivo4.R.string.ui_higher_bitrate_yields_clearer_audio_output_412),
                             leadingIcon = Icons.Outlined.HighQuality,
                             options = listOf(
-                                "64 kbps (Compact)" to 64000,
-                                "96 kbps (Balanced)" to 96000,
-                                "128 kbps (High Quality)" to 128000,
-                                "192 kbps (Ultra)" to 192000,
-                                "256 kbps (Maximum)" to 256000
+                                "8 kbps" to 8000,
+                                "16 kbps" to 16000,
+                                "24 kbps" to 24000,
+                                "32 kbps" to 32000,
+                                "48 kbps" to 48000,
+                                RivoText.get(com.grinch.rivo4.R.string.ui_64_kbps_compact_418) to 64000,
+                                RivoText.get(com.grinch.rivo4.R.string.ui_96_kbps_balanced_419) to 96000,
+                                RivoText.get(com.grinch.rivo4.R.string.ui_128_kbps_high_quality_420) to 128000,
+                                RivoText.get(com.grinch.rivo4.R.string.ui_192_kbps_ultra_421) to 192000,
+                                RivoText.get(com.grinch.rivo4.R.string.ui_256_kbps_maximum_422) to 256000
                             ),
                             selectedValue = bitrate,
                             onValueChange = {
@@ -1138,14 +1208,14 @@ fun CallRecordingsContent(
                         )
                         RivoDivider(Modifier.padding(horizontal = 16.dp))
                         RivoSelectListItem(
-                            headline = "Minimum Duration Filter",
-                            supporting = "Discard ultra-short calls below threshold",
+                            headline = RivoText.get(com.grinch.rivo4.R.string.ui_minimum_duration_filter_423),
+                            supporting = RivoText.get(com.grinch.rivo4.R.string.ui_discard_ultra_short_calls_below_threshold_424),
                             leadingIcon = Icons.Outlined.Timer,
                             options = listOf(
-                                "Record All Calls" to 0,
-                                "Ignore calls < 3s" to 3,
-                                "Ignore calls < 5s" to 5,
-                                "Ignore calls < 10s" to 10
+                                RivoText.get(com.grinch.rivo4.R.string.ui_record_all_calls_425) to 0,
+                                RivoText.get(com.grinch.rivo4.R.string.ui_ignore_calls_3s_426) to 3,
+                                RivoText.get(com.grinch.rivo4.R.string.ui_ignore_calls_5s_427) to 5,
+                                RivoText.get(com.grinch.rivo4.R.string.ui_ignore_calls_10s_428) to 10
                             ),
                             selectedValue = minDurationFilter,
                             onValueChange = {
@@ -1187,8 +1257,8 @@ fun CallRecordingsContent(
                 showDeleteAllConfirm = false
                 refreshKey++
             },
-            title = "Delete all recordings?",
-            message = "All ${recordings.size} recordings will be permanently removed from your device. This action cannot be undone.",
+            title = RivoText.get(com.grinch.rivo4.R.string.ui_delete_all_recordings_429),
+            message = RivoText.get(com.grinch.rivo4.R.string.ui_all_recordings_will_be_permanently_removed_from_your_device_th_430, (recordings.size).toString()),
             confirmLabel = stringResource(R.string.action_delete),
             icon = Icons.Outlined.DeleteSweep,
             isDestructive = true
@@ -1236,7 +1306,7 @@ fun CallRecordingsContent(
                 state = datePickerState,
                 title = {
                     Text(
-                        text = "Select Start Date (From)",
+                        text = RivoText.get(com.grinch.rivo4.R.string.ui_select_start_date_from_431),
                         style = MaterialTheme.typography.labelLarge,
                         modifier = Modifier.padding(start = 24.dp, end = 12.dp, top = 16.dp)
                     )
@@ -1286,7 +1356,7 @@ fun CallRecordingsContent(
                 state = datePickerState,
                 title = {
                     Text(
-                        text = "Select End Date (To)",
+                        text = RivoText.get(com.grinch.rivo4.R.string.ui_select_end_date_to_432),
                         style = MaterialTheme.typography.labelLarge,
                         modifier = Modifier.padding(start = 24.dp, end = 12.dp, top = 16.dp)
                     )
@@ -1398,7 +1468,7 @@ fun CallRecordEntryCard(
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = if (isCurrentActive && isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                            contentDescription = "Play/Pause",
+                            contentDescription = RivoText.get(com.grinch.rivo4.R.string.ui_play_pause_435),
                             tint = if (isCurrentActive) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(24.dp)
                         )
@@ -1493,7 +1563,7 @@ fun CallRecordEntryCard(
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
                                     imageVector = Icons.Outlined.Replay10,
-                                    contentDescription = "Rewind 10s",
+                                    contentDescription = RivoText.get(com.grinch.rivo4.R.string.ui_rewind_10s_437),
                                     modifier = Modifier.size(22.dp)
                                 )
                             }
@@ -1512,7 +1582,7 @@ fun CallRecordEntryCard(
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
                                     imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                                    contentDescription = "Play/Pause",
+                                    contentDescription = RivoText.get(com.grinch.rivo4.R.string.ui_play_pause_435),
                                     tint = MaterialTheme.colorScheme.onPrimaryContainer,
                                     modifier = Modifier.size(28.dp)
                                 )
@@ -1531,7 +1601,7 @@ fun CallRecordEntryCard(
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
                                     imageVector = Icons.Outlined.Forward10,
-                                    contentDescription = "Forward 10s",
+                                    contentDescription = RivoText.get(com.grinch.rivo4.R.string.ui_forward_10s_438),
                                     modifier = Modifier.size(22.dp)
                                 )
                             }
@@ -1561,7 +1631,7 @@ fun CallRecordEntryCard(
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(Modifier.width(6.dp))
-                            Text("Share")
+                            Text(RivoText.get(com.grinch.rivo4.R.string.ui_share_439))
                         }
                         OutlinedButton(
                             onClick = onDeleteClick,
@@ -1578,7 +1648,7 @@ fun CallRecordEntryCard(
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(Modifier.width(6.dp))
-                            Text("Delete")
+                            Text(RivoText.get(com.grinch.rivo4.R.string.ui_delete_156))
                         }
                     }
                 }
@@ -1737,10 +1807,10 @@ private fun OemActionRow(
 private fun getAudioDurationMs(context: Context, file: File): Long {
     return runCatching {
         val retriever = MediaMetadataRetriever()
-        retriever.setDataSource(context, Uri.fromFile(file))
-        val durationStr = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
-        retriever.release()
-        durationStr?.toLongOrNull() ?: 0L
+        try {
+            retriever.setDataSource(context, Uri.fromFile(file))
+            retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L
+        } finally { retriever.release() }
     }.getOrDefault(0L)
 }
 

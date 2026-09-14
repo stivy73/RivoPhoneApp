@@ -1,5 +1,6 @@
 package com.grinch.rivo4.controller.util
 
+import com.grinch.rivo4.controller.util.RivoText
 import android.content.Context
 import android.content.SharedPreferences
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -320,11 +321,11 @@ class PreferenceManager(context: Context) {
         const val KEY_VOLUME_SQUEEZE_DND = "volume_squeeze_dnd"
         const val KEY_QUICK_RESPONSES = "custom_quick_responses"
         val DEFAULT_QUICK_RESPONSES = listOf(
-            "Can't talk now. What's up?",
-            "I'll call you right back.",
-            "I'll call you later.",
-            "Can't talk now. Call me later?",
-            "I'm in a meeting. Will message you soon."
+            RivoText.get(com.grinch.rivo4.R.string.ui_can_t_talk_now_what_s_up_32),
+            RivoText.get(com.grinch.rivo4.R.string.ui_i_ll_call_you_right_back_33),
+            RivoText.get(com.grinch.rivo4.R.string.ui_i_ll_call_you_later_34),
+            RivoText.get(com.grinch.rivo4.R.string.ui_can_t_talk_now_call_me_later_35),
+            RivoText.get(com.grinch.rivo4.R.string.ui_i_m_in_a_meeting_will_message_you_soon_36)
         )
         const val KEY_BOTTOM_NAV_ORDER = "bottom_nav_order"
         const val KEY_BOTTOM_NAV_HIDDEN = "bottom_nav_hidden"

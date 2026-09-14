@@ -1,5 +1,6 @@
 package com.grinch.rivo4.controller.fakecall
 
+import com.grinch.rivo4.controller.util.RivoText
 import android.app.AlarmManager
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -23,7 +24,7 @@ import java.util.UUID
 
 data class FakeCallSchedule(
     val id: String = UUID.randomUUID().toString(),
-    val callerName: String = "Mom",
+    val callerName: String = RivoText.get(com.grinch.rivo4.R.string.ui_mom_232),
     val phoneNumber: String = "+1 (555) 019-2834",
     val photoUri: String? = null,
     val triggerTimestampMillis: Long,
@@ -43,7 +44,7 @@ data class FakeCallSchedule(
             val photo = json.optString("photoUri", "")
             return FakeCallSchedule(
                 id = json.optString("id", UUID.randomUUID().toString()),
-                callerName = json.optString("callerName", "Mom"),
+                callerName = json.optString("callerName", RivoText.get(com.grinch.rivo4.R.string.ui_mom_232)),
                 phoneNumber = json.optString("phoneNumber", "+1 (555) 019-2834"),
                 photoUri = if (photo.isNotEmpty()) photo else null,
                 triggerTimestampMillis = json.optLong("triggerTimestampMillis", 0L),
@@ -59,12 +60,12 @@ object FakeCallManager {
     private const val PREFS_NAME = "rivo_fake_call_prefs"
     private const val KEY_SCHEDULES_JSON = "fake_schedules_json"
 
-    const val ACTION_TRIGGER_FAKE_CALL = "com.grinch.rivo4.ACTION_TRIGGER_FAKE_CALL"
-    const val ACTION_CANCEL_FAKE_CALL = "com.grinch.rivo4.ACTION_CANCEL_FAKE_CALL"
-    const val ACTION_ANSWER_FAKE_CALL = "com.grinch.rivo4.ACTION_ANSWER_FAKE_CALL"
-    const val ACTION_DECLINE_FAKE_CALL = "com.grinch.rivo4.ACTION_DECLINE_FAKE_CALL"
-    const val ACTION_MUTE_FAKE_CALL = "com.grinch.rivo4.ACTION_MUTE_FAKE_CALL"
-    const val ACTION_SPEAKER_FAKE_CALL = "com.grinch.rivo4.ACTION_SPEAKER_FAKE_CALL"
+    const val ACTION_TRIGGER_FAKE_CALL = com.grinch.rivo4.BuildConfig.APPLICATION_ID + ".ACTION_TRIGGER_FAKE_CALL"
+    const val ACTION_CANCEL_FAKE_CALL = com.grinch.rivo4.BuildConfig.APPLICATION_ID + ".ACTION_CANCEL_FAKE_CALL"
+    const val ACTION_ANSWER_FAKE_CALL = com.grinch.rivo4.BuildConfig.APPLICATION_ID + ".ACTION_ANSWER_FAKE_CALL"
+    const val ACTION_DECLINE_FAKE_CALL = com.grinch.rivo4.BuildConfig.APPLICATION_ID + ".ACTION_DECLINE_FAKE_CALL"
+    const val ACTION_MUTE_FAKE_CALL = com.grinch.rivo4.BuildConfig.APPLICATION_ID + ".ACTION_MUTE_FAKE_CALL"
+    const val ACTION_SPEAKER_FAKE_CALL = com.grinch.rivo4.BuildConfig.APPLICATION_ID + ".ACTION_SPEAKER_FAKE_CALL"
 
     const val EXTRA_SCHEDULE_ID = "extra_fake_schedule_id"
     const val EXTRA_NAME = "extra_fake_caller_name"

@@ -17,8 +17,6 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_PHONE_CALL" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
-    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29" tools:ignore="ScopedStorage" />
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" tools:ignore="ScopedStorage" />
@@ -36,11 +34,9 @@
     <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
     <uses-permission android:name="android.permission.SEND_SMS" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
-    <uses-permission
-        android:name="android.permission.QUERY_ALL_PACKAGES"
-        tools:node="remove"/>
 
     <queries>
+        <package android:name="moe.shizuku.privileged.api" />
         <!-- Messaging & Social Apps -->
         <package android:name="com.whatsapp" />
         <package android:name="com.whatsapp.w4b" />
@@ -188,12 +184,12 @@
             android:name=".controller.fakecall.FakeCallReceiver"
             android:exported="true">
             <intent-filter>
-                <action android:name="com.grinch.rivo4.ACTION_TRIGGER_FAKE_CALL" />
-                <action android:name="com.grinch.rivo4.ACTION_DECLINE_FAKE_CALL" />
-                <action android:name="com.grinch.rivo4.ACTION_MUTE_FAKE_CALL" />
-                <action android:name="com.grinch.rivo4.ACTION_SPEAKER_FAKE_CALL" />
-                <action android:name="com.grinch.rivo4.ACTION_CANCEL_FAKE_CALL" />
-                <action android:name="com.grinch.rivo4.ACTION_TEST_RECORD" />
+                <action android:name="${applicationId}.ACTION_TRIGGER_FAKE_CALL" />
+                <action android:name="${applicationId}.ACTION_DECLINE_FAKE_CALL" />
+                <action android:name="${applicationId}.ACTION_MUTE_FAKE_CALL" />
+                <action android:name="${applicationId}.ACTION_SPEAKER_FAKE_CALL" />
+                <action android:name="${applicationId}.ACTION_CANCEL_FAKE_CALL" />
+                <action android:name="${applicationId}.ACTION_TEST_RECORD" />
             </intent-filter>
         </receiver>
 
@@ -218,7 +214,7 @@
         <service
             android:name=".controller.CallService"
             android:permission="android.permission.BIND_INCALL_SERVICE"
-            android:foregroundServiceType="phoneCall|microphone"
+            android:foregroundServiceType="phoneCall"
             android:directBootAware="true"
             android:exported="true">
             <meta-data
@@ -231,7 +227,7 @@
 
         <service
             android:name=".controller.CallRecordingService"
-            android:foregroundServiceType="microphone"
+            android:foregroundServiceType="phoneCall"
             android:exported="false" />
 
         <service

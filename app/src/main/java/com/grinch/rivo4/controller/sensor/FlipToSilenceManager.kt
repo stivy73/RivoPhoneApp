@@ -87,12 +87,15 @@ class FlipToSilenceManager(private val context: Context) : SensorEventListener {
         }
     }
 
+    // TelecomManager explicitly permits the default dialer without MODIFY_PHONE_STATE.
+    // Lint models only the privileged permission; the role check below is the public alternative.
+    @android.annotation.SuppressLint("MissingPermission")
     private fun triggerSilence() {
         stopListening()
 
         // Silence the incoming call ringer
         try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (telecomManager?.defaultDialerPackage == context.packageName) {
                 telecomManager?.silenceRinger()
             }
         } catch (e: Exception) {

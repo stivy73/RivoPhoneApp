@@ -1,5 +1,6 @@
 package com.grinch.rivo4.controller.reminder
 
+import com.grinch.rivo4.controller.util.RivoText
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -55,10 +56,10 @@ class CallbackReminderReceiver : BroadcastReceiver(), KoinComponent {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "Call Back Reminders",
+                RivoText.get(com.grinch.rivo4.R.string.ui_call_back_reminders_55),
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = "Notifications reminding you to call back contacts"
+                description = RivoText.get(com.grinch.rivo4.R.string.ui_notifications_reminding_you_to_call_back_contacts_56)
                 enableVibration(true)
             }
             notificationManager.createNotificationChannel(channel)
@@ -89,20 +90,20 @@ class CallbackReminderReceiver : BroadcastReceiver(), KoinComponent {
         )
 
         val contentText = if (!note.isNullOrBlank()) {
-            "Time to call back $contactName: \"$note\""
+            RivoText.get(com.grinch.rivo4.R.string.ui_time_to_call_back_57, (contactName).toString(), (note).toString())
         } else {
-            "Time to call back $contactName ($phoneNumber)"
+            RivoText.get(com.grinch.rivo4.R.string.ui_time_to_call_back_58, (contactName).toString(), (phoneNumber).toString())
         }
 
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.sym_action_call)
-            .setContentTitle("Call Back Reminder")
+            .setContentTitle(RivoText.get(com.grinch.rivo4.R.string.ui_call_back_reminder_59))
             .setContentText(contentText)
             .setStyle(NotificationCompat.BigTextStyle().bigText(contentText))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
-            .addAction(android.R.drawable.sym_action_call, "Call Now", callPendingIntent)
-            .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Dismiss", dismissPendingIntent)
+            .addAction(android.R.drawable.sym_action_call, RivoText.get(com.grinch.rivo4.R.string.ui_call_now_60), callPendingIntent)
+            .addAction(android.R.drawable.ic_menu_close_clear_cancel, RivoText.get(com.grinch.rivo4.R.string.ui_dismiss_183), dismissPendingIntent)
 
         val notifId = if (reminderId > 0) reminderId.toInt() else phoneNumber.hashCode()
         notificationManager.notify(notifId, builder.build())
@@ -114,6 +115,6 @@ class CallbackReminderReceiver : BroadcastReceiver(), KoinComponent {
         const val EXTRA_PHONE_NUMBER = "phone_number"
         const val EXTRA_CONTACT_NAME = "contact_name"
         const val EXTRA_NOTE = "note"
-        const val ACTION_DISMISS = "com.grinch.rivo4.ACTION_DISMISS_REMINDER"
+        const val ACTION_DISMISS = com.grinch.rivo4.BuildConfig.APPLICATION_ID + ".ACTION_DISMISS_REMINDER"
     }
 }

@@ -13,23 +13,26 @@ def baseVersionName = "2.1"
 
 android {
     namespace = 'com.grinch.rivo4'
-    compileSdk = 37
+    compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.grinch.rivo4"
+        applicationId = "it.stivy.rivo.personal"
         minSdk = 31
-        targetSdk = 37
+        targetSdk = 36
         versionCode = baseVersionCode + buildNumber
         versionName = isPreviewBuild ? "${baseVersionName}.${buildNumber}-preview" : baseVersionName
+        buildConfigField 'String', 'SCRCPY_VERSION', '"4.0"'
+        buildConfigField 'String', 'SCRCPY_SERVER_SHA256', '"84924bd564a1eb6089c872c7521f968058977f91f5ff02514a8c74aff3210f3a"'
+        buildConfigField 'String', 'SCRCPY_SERVER_ASSET_NAME', '"scrcpy-server"'
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     signingConfigs {
         release {
-            storeFile = file(System.getenv("KEYSTORE_PATH") ?: "${System.getProperty("user.home")}/.android/debug.keystore")
-            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: "android"
-            keyAlias = System.getenv("KEY_ALIAS") ?: "androiddebugkey"
-            keyPassword = System.getenv("KEY_PASSWORD") ?: "android"
+            if (System.getenv("KEYSTORE_PATH")) storeFile = file(System.getenv("KEYSTORE_PATH"))
+            storePassword = System.getenv("KEYSTORE_PASSWORD")
+            keyAlias = System.getenv("KEY_ALIAS")
+            keyPassword = System.getenv("KEY_PASSWORD")
         }
     }
 
@@ -37,12 +40,14 @@ android {
         release {
             minifyEnabled = true
             shrinkResources = true
-            signingConfig = signingConfigs.release
+            if (System.getenv("KEYSTORE_PATH") && System.getenv("KEYSTORE_PASSWORD") && System.getenv("KEY_ALIAS") && System.getenv("KEY_PASSWORD")) {
+                signingConfig = signingConfigs.release
+            }
             debuggable = false
         }
         debug {
             applicationIdSuffix = ".debug"
-            resValue "string", "app_name", "Rivo (Debug)"
+            resValue "string", "app_name", "Rivo Personal"
         }
     }
 
@@ -64,10 +69,14 @@ android {
 
     buildFeatures {
         compose = true
+        aidl = true
+        buildConfig = true
     }
 
     androidResources {
         generateLocaleConfig = true
+        // Personal edition ships the two fully maintained locales. Upstream translations stay in source.
+        localeFilters += ["en", "it"]
     }
 
     splits {
@@ -92,10 +101,11 @@ android {
     productFlavors {
         play {
             dimension "distribution"
-            isDefault = true
+            isDefault = false
         }
         foss {
             dimension "distribution"
+            isDefault = true
         }
     }
 
@@ -173,8 +183,22 @@ dependencies {
     implementation 'com.google.zxing:core:3.5.4'
 
     testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0'
     androidTestImplementation 'androidx.test.ext:junit:1.2.1'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
 
     debugImplementation 'androidx.compose.ui:ui-tooling'
 }
+
+// Pinned ShizuCallRecorder 1.3.3 server. Verify on EVERY build, including cached assets.
+def scrcpyAsset = layout.projectDirectory.file('src/main/assets/scrcpy-server')
+tasks.register('verifyScrcpyServer') {
+    inputs.file(scrcpyAsset)
+    doLast {
+        def actual = java.security.MessageDigest.getInstance('SHA-256').digest(scrcpyAsset.asFile.bytes).encodeHex().toString()
+        if (actual != '84924bd564a1eb6089c872c7521f968058977f91f5ff02514a8c74aff3210f3a') {
+            throw new GradleException('scrcpy-server 4.0 integrity check failed. Run scripts/fetch-scrcpy.sh.')
+        }
+    }
+}
+tasks.named('preBuild').configure { dependsOn 'verifyScrcpyServer' }

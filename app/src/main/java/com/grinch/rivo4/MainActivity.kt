@@ -1,5 +1,6 @@
 package com.grinch.rivo4
 
+import com.grinch.rivo4.controller.util.RivoText
 import android.content.Intent
 import android.os.Bundle
 import android.provider.ContactsContract
@@ -158,10 +159,10 @@ class MainActivity : androidx.fragment.app.FragmentActivity() {
                                     prefs.setBoolean(PreferenceManager.KEY_RATE_APP_SHOWN, true)
                                     showRatePrompt = false
                                 },
-                                title = "Enjoying Rivo Phone?",
+                                title = RivoText.get(com.grinch.rivo4.R.string.ui_enjoying_rivo_phone_0),
                                 icon = Icons.Default.Star,
                                 confirmAction = com.grinch.rivo4.view.components.RivoDialogAction(
-                                    label = "Rate on Google Play",
+                                    label = RivoText.get(com.grinch.rivo4.R.string.ui_rate_on_google_play_350),
                                     onClick = {
                                         openLink(context, PLAY_STORE_URL)
                                         prefs.setBoolean(PreferenceManager.KEY_RATE_APP_SHOWN, true)
@@ -169,7 +170,7 @@ class MainActivity : androidx.fragment.app.FragmentActivity() {
                                     }
                                 ),
                                 dismissAction = com.grinch.rivo4.view.components.RivoDialogAction(
-                                    label = "Remind Me Later",
+                                    label = RivoText.get(R.string.ui_remind_later),
                                     onClick = {
                                         val threeDaysLater = System.currentTimeMillis() + (3 * 24 * 60 * 60 * 1000L)
                                         prefs.setString(PreferenceManager.KEY_RATE_APP_SNOOZED_TIME, threeDaysLater.toString())
@@ -178,7 +179,7 @@ class MainActivity : androidx.fragment.app.FragmentActivity() {
                                 )
                             ) {
                                 Text(
-                                    text = "If Rivo has made managing your calls better, please consider leaving a 5-star rating on Google Play. Your support helps us keep the app free and independent!",
+                                    text = RivoText.get(com.grinch.rivo4.R.string.ui_if_rivo_has_made_managing_your_calls_better_please_consider_le_1),
                                     style = MaterialTheme.typography.bodyLarge,
                                     textAlign = TextAlign.Center,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -269,7 +270,7 @@ class MainActivity : androidx.fragment.app.FragmentActivity() {
         val action = intent.action
 
         when (action) {
-            "com.grinch.rivo4.ACTION_VIEW_RECENTS" -> {
+            com.grinch.rivo4.BuildConfig.APPLICATION_ID + ".ACTION_VIEW_RECENTS" -> {
                 navController.navigate(MainScreenDestination(initialTab = 0).route) {
                     popUpTo(navController.graph.startDestinationId)
                     launchSingleTop = true
@@ -309,10 +310,10 @@ class MainActivity : androidx.fragment.app.FragmentActivity() {
 
     private val volumeSqueezeHelper by lazy { com.grinch.rivo4.controller.util.VolumeSqueezeHelper(this, preferenceManager) }
 
-    override fun dispatchKeyEvent(event: android.view.KeyEvent): Boolean {
-        if (volumeSqueezeHelper.handleKeyEvent(event)) {
+    override fun onKeyDown(keyCode: Int, event: android.view.KeyEvent?): Boolean {
+        if (event != null && volumeSqueezeHelper.handleKeyEvent(event)) {
             return true
         }
-        return super.dispatchKeyEvent(event)
+        return super.onKeyDown(keyCode, event)
     }
 }

@@ -1,5 +1,6 @@
 package com.grinch.rivo4.view.screen
 
+import com.grinch.rivo4.controller.util.RivoText
 import android.Manifest
 import android.content.Context
 import android.content.Intent
@@ -242,16 +243,8 @@ fun ExpressiveCallScreen(
     val recordingEnabled = remember(settingsState) {
         preferenceManager.getBoolean(PreferenceManager.KEY_CALL_RECORDING, true)
     }
-    val isRecording by CallRecorder.isRecording.collectAsState()
-
-    val recordAudioPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission(),
-        onResult = { granted ->
-            if (granted) {
-                CallRecorder.start(context, contactName.ifBlank { phoneNumber })
-            }
-        }
-    )
+    val recordingState by CallRecorder.state.collectAsState()
+    val isRecording = recordingState.phase == com.grinch.rivo4.controller.recording.RecordingPhase.RECORDING
 
     val statusText = when (callState) {
         Call.STATE_DISCONNECTED -> stringResource(R.string.call_status_ended)
@@ -460,7 +453,7 @@ fun ExpressiveCallScreen(
                 )
             }
 
-            if (isRecording) {
+            if (recordingState.phase != com.grinch.rivo4.controller.recording.RecordingPhase.IDLE) {
                 Row(
                     modifier = Modifier.padding(top = 6.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -473,7 +466,8 @@ fun ExpressiveCallScreen(
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = stringResource(R.string.call_recording_in_progress),
+                        text = recordingState.error?.let { stringResource(com.grinch.rivo4.controller.recording.RecordingStrings.error(it)) }
+                            ?: stringResource(com.grinch.rivo4.controller.recording.RecordingStrings.phase(recordingState.phase)),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.callColors.decline
                     )
@@ -516,8 +510,8 @@ fun ExpressiveCallScreen(
             isMuted = isMuted,
             audioState = audioState,
             showKeypad = showKeypad,
-            recordingEnabled = recordingEnabled,
-            isRecording = isRecording,
+            recordingEnabled = recordingEnabled && callState == Call.STATE_ACTIVE && recordingState.phase != com.grinch.rivo4.controller.recording.RecordingPhase.STOPPING,
+            isRecording = recordingState.busy,
             compact = compact,
             onToggleMute = { CallService.mute(!isMuted) },
             onToggleKeypad = { showKeypad = !showKeypad },
@@ -543,15 +537,8 @@ fun ExpressiveCallScreen(
                 } catch (e: Exception) {}
             },
             onToggleRecording = {
-                if (isRecording) {
-                    CallRecorder.stop()
-                } else {
-                    if (CallRecorder.hasAudioPermission(context)) {
-                        CallRecorder.start(context, contactName.ifBlank { phoneNumber })
-                    } else {
-                        recordAudioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                    }
-                }
+                if (recordingState.busy) CallRecorder.stop()
+                else if (call.state == Call.STATE_ACTIVE) CallRecorder.start(context, contactName.ifBlank { phoneNumber })
             },
             onEndCall = { try { call.disconnect() } catch (e: Exception) {} },
             onNotesClick = { showCallNotesSheet = true }
@@ -753,9 +740,9 @@ fun ExpressiveCallScreen(
                             phoneNumber = phoneNumber,
                             contactName = contactName.ifBlank { null },
                             delayMinutes = delayMinutes,
-                            note = "Callback reminder from incoming call"
+                            note = RivoText.get(com.grinch.rivo4.R.string.ui_callback_reminder_from_incoming_call_168)
                         )
-                        Toast.makeText(context, "Reminder set for $label", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, RivoText.get(com.grinch.rivo4.R.string.ui_reminder_set_for_169, (label).toString()), Toast.LENGTH_SHORT).show()
                     }
                     try {
                         if (call.state == Call.STATE_RINGING) {
@@ -812,14 +799,14 @@ fun PocketModeOverlay(
             }
             Spacer(Modifier.height(24.dp))
             Text(
-                text = "Pocket Mode Active",
+                text = RivoText.get(com.grinch.rivo4.R.string.ui_pocket_mode_active_170),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = Color.White
             )
             Spacer(Modifier.height(8.dp))
             Text(
-                text = "Screen touches are locked to prevent accidental touches in your pocket.",
+                text = RivoText.get(com.grinch.rivo4.R.string.ui_screen_touches_are_locked_to_prevent_accidental_touches_in_you_171),
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color.White.copy(alpha = 0.7f),
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -831,7 +818,7 @@ fun PocketModeOverlay(
             ) {
                 Icon(Icons.Outlined.LockOpen, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
-                Text("Dismiss Touch Guard")
+                Text(RivoText.get(com.grinch.rivo4.R.string.ui_dismiss_touch_guard_172))
             }
         }
     }
@@ -882,12 +869,12 @@ fun QuickResponsesBottomSheet(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Quick Response",
+                        text = RivoText.get(com.grinch.rivo4.R.string.ui_quick_response_173),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "Decline call and reply to ${contactName.ifBlank { phoneNumber }}",
+                        text = RivoText.get(com.grinch.rivo4.R.string.ui_decline_call_and_reply_to_174, (contactName.ifBlank { phoneNumber }).toString()),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -895,7 +882,7 @@ fun QuickResponsesBottomSheet(
                 IconButton(onClick = onOpenSmsApp) {
                     Icon(
                         Icons.Outlined.OpenInNew,
-                        contentDescription = "Open SMS app",
+                        contentDescription = RivoText.get(com.grinch.rivo4.R.string.ui_open_sms_app_175),
                         tint = MaterialTheme.colorScheme.primary
                     )
                 }
@@ -942,7 +929,7 @@ fun QuickResponsesBottomSheet(
                 ) {
                     Icon(Icons.Outlined.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(8.dp))
-                    Text("Write a custom message...")
+                    Text(RivoText.get(com.grinch.rivo4.R.string.ui_write_a_custom_message_176))
                 }
             } else {
                 Row(
@@ -952,7 +939,7 @@ fun QuickResponsesBottomSheet(
                     OutlinedTextField(
                         value = customText,
                         onValueChange = { customText = it },
-                        placeholder = { Text("Type custom message...") },
+                        placeholder = { Text(RivoText.get(com.grinch.rivo4.R.string.ui_type_custom_message_177)) },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(14.dp),
                         singleLine = true
@@ -968,7 +955,7 @@ fun QuickResponsesBottomSheet(
                     ) {
                         Icon(
                             Icons.Outlined.Send,
-                            contentDescription = "Send",
+                            contentDescription = RivoText.get(com.grinch.rivo4.R.string.ui_send_178),
                             tint = if (customText.isNotBlank()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
                         )
                     }
@@ -980,7 +967,7 @@ fun QuickResponsesBottomSheet(
             Spacer(Modifier.height(12.dp))
 
             Text(
-                text = "Remind Me to Call Back",
+                text = RivoText.get(com.grinch.rivo4.R.string.ui_remind_me_to_call_back_179),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )
@@ -991,9 +978,9 @@ fun QuickResponsesBottomSheet(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 listOf(
-                    "In 15m" to 15L,
-                    "In 1h" to 60L,
-                    "Tomorrow 9 AM" to tomorrowMorningMinutes
+                    RivoText.get(com.grinch.rivo4.R.string.ui_in_15m_180) to 15L,
+                    RivoText.get(com.grinch.rivo4.R.string.ui_in_1h_181) to 60L,
+                    RivoText.get(com.grinch.rivo4.R.string.ui_tomorrow_9_am_119) to tomorrowMorningMinutes
                 ).forEach { (label, minutes) ->
                     FilledTonalButton(
                         onClick = { onScheduleReminder(minutes, label) },

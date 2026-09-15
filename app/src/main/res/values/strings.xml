@@ -1206,6 +1206,7 @@
     <string name="ui_ignore_calls_3s_426">Ignore calls &lt; 3s</string>
     <string name="ui_ignore_calls_5s_427">Ignore calls &lt; 5s</string>
     <string name="ui_ignore_calls_10s_428">Ignore calls &lt; 10s</string>
+    <string name="ui_ignore_calls_60s">Ignore calls &lt; 60s</string>
     <string name="ui_delete_all_recordings_429">Delete all recordings?</string>
     <string name="ui_all_recordings_will_be_permanently_removed_from_your_device_th_430">All %1$s recordings will be permanently removed from your device. This action cannot be undone.</string>
     <string name="ui_select_start_date_from_431">Select Start Date (From)</string>

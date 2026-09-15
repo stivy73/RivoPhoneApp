@@ -1104,6 +1104,7 @@
     <string name="ui_ignore_calls_3s_426">Ignora chiamate inferiori a 3 s</string>
     <string name="ui_ignore_calls_5s_427">Ignora chiamate inferiori a 5 s</string>
     <string name="ui_ignore_calls_10s_428">Ignora chiamate inferiori a 10 s</string>
+    <string name="ui_ignore_calls_60s">Ignora chiamate inferiori a 60 s</string>
     <string name="ui_delete_all_recordings_429">Eliminare tutte le registrazioni?</string>
     <string name="ui_all_recordings_will_be_permanently_removed_from_your_device_th_430">Tutte le %1$s registrazioni verranno eliminate definitivamente dal dispositivo. L’operazione non può essere annullata.</string>
     <string name="ui_select_start_date_from_431">Seleziona data iniziale (da)</string>

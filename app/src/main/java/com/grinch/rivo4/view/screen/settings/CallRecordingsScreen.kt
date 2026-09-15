@@ -1167,7 +1167,8 @@ fun CallRecordingsContent(
                                 RivoText.get(com.grinch.rivo4.R.string.ui_record_all_calls_425) to 0,
                                 RivoText.get(com.grinch.rivo4.R.string.ui_ignore_calls_3s_426) to 3,
                                 RivoText.get(com.grinch.rivo4.R.string.ui_ignore_calls_5s_427) to 5,
-                                RivoText.get(com.grinch.rivo4.R.string.ui_ignore_calls_10s_428) to 10
+                                RivoText.get(com.grinch.rivo4.R.string.ui_ignore_calls_10s_428) to 10,
+                                RivoText.get(com.grinch.rivo4.R.string.ui_ignore_calls_60s) to 60
                             ),
                             selectedValue = minDurationFilter,
                             onValueChange = {

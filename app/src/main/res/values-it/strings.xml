@@ -1259,7 +1259,7 @@
     <string name="drive_connecting">Collegamento in corso…</string>
     <string name="drive_reconnect">Verifica / ricollega Google Drive</string>
     <string name="drive_automatic">Backup automatico delle registrazioni locali di Rivo</string>
-    <string name="drive_wifi">Solo reti senza consumo (normalmente Wi-Fi)</string>
+    <string name="drive_wifi">Solo su Wi-Fi</string>
     <string name="drive_pending">File da elaborare: %1$d</string>
     <string name="drive_last">Ultima operazione riuscita: %1$s</string>
     <string name="drive_backup_now">Backup adesso / riprova</string>

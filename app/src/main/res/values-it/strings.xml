@@ -1186,6 +1186,8 @@
     <string name="caller_description">Rubrica e nomi personalizzati hanno la precedenza. Solo i numeri sconosciuti vengono inviati ai provider attivati.</string>
     <string name="caller_online">Attiva riconoscimento online</string>
     <string name="caller_google">Usa Google Places</string>
+    <string name="caller_business_search">Cerca attività da Cerca in Rivo</string>
+    <string name="caller_business_search_summary">Trova attività per nome con Google Places. La ricerca viene inviata a Google solo mentre cerchi.</string>
     <string name="caller_manage">Gestisci nomi personalizzati</string>
     <string name="caller_add_custom">Aggiungi nome personalizzato</string>
     <string name="caller_clear">Cancella cache identificazioni</string>
@@ -1227,6 +1229,14 @@
     <string name="caller_update_contact">Aggiorna nome in rubrica</string>
     <string name="caller_update_review">Si aprirà la modifica del contatto con il nome proposto. La rubrica cambierà solo premendo Salva.</string>
     <string name="caller_edit_unavailable">Impossibile aprire un contatto univoco per questo numero. Apri il contatto dalla rubrica per modificarlo.</string>
+    <string name="business_results_header">Attività su Google Maps</string>
+    <string name="business_searching">Ricerca attività in corso…</string>
+    <string name="business_details_title">Scheda attività</string>
+    <string name="business_details_source">Risultato da Google Maps</string>
+    <string name="business_phone">Telefono</string>
+    <string name="business_address">Indirizzo</string>
+    <string name="business_save_contact">Salva in rubrica</string>
+    <string name="business_phone_unavailable">Questo risultato non ha un numero di telefono da salvare.</string>
     <string name="drive_private_storage">Le nuove registrazioni sono conservate nella cartella privata di Rivo, fuori dal catalogo multimediale. La disinstallazione elimina le copie locali.</string>
     <string name="drive_title">Backup registrazioni</string>
     <string name="drive_description">Conserva una seconda copia su Google Drive dopo il salvataggio locale. La prima connessione richiede la configurazione OAuth Google Cloud per questa app.</string>

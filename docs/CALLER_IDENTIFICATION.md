@@ -73,6 +73,22 @@ Google rimane solo in memoria per 5 minuti, senza cache persistente dei nomi
 ([policy](https://developers.google.com/maps/documentation/places/web-service/policies)).
 Svuotare cache non elimina nomi privati, contatti o chiavi.
 
+## Ricerca attività in Cerca in Rivo
+
+Nella stessa schermata impostazioni è disponibile **Cerca attività da Cerca in
+Rivo**, disattivata per impostazione predefinita. Richiede Google Places attivo e
+con chiave verificata. Dopo 550 ms senza digitazione, una ricerca di almeno tre
+caratteri invia solo il testo cercato a Places Text Search, fuori dal main thread.
+Rubrica e risultati locali continuano a comparire subito; una ricerca annullata,
+una chiave rimossa o lo spegnimento dell’interruttore non mostra risultati tardivi.
+
+Le attività compaiono in una sezione distinta con nome, categoria, indirizzo e
+telefono quando Google li restituisce. Il dettaglio può aprire l’indirizzo in
+Google Maps e precompilare la creazione di un contatto; nome, numero e indirizzo
+diventano dati della rubrica solo dopo l’esplicito comando **Salva** dell’utente.
+I risultati Places non sono scritti nella cache chiamanti, nelle preferenze o nel
+database dell’app.
+
 ## Verifica e regressioni
 
 Unit test: payload/errori ufficiali sintetici, esatta corrispondenza telefonica,

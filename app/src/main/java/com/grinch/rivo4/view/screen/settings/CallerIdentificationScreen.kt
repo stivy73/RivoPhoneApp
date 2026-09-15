@@ -149,6 +149,21 @@ fun CallerIdentificationScreen(navigator: DestinationsNavigator) {
                 Switch(checked = remember(revision) { repository.option("online") }, onCheckedChange = { repository.toggle("online", it) })
             }
             ProviderCard("google", repository)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Column(Modifier.weight(1f)) {
+                    Text(stringResource(R.string.caller_business_search))
+                    Text(
+                        stringResource(R.string.caller_business_search_summary),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(
+                    checked = remember(revision) { repository.businessSearchEnabled() },
+                    onCheckedChange = repository::setBusinessSearchEnabled,
+                    enabled = repository.option("google") && repository.status("google") == ProviderStatus.CONFIGURED
+                )
+            }
             HorizontalDivider()
             Text(stringResource(R.string.caller_manage), style = MaterialTheme.typography.titleMedium)
             Button(onClick = { editNumber = "" }) { Text(stringResource(R.string.caller_add_custom)) }

@@ -97,59 +97,9 @@ object CallRecorder {
     }
 
     fun getRecordingsDirectory(context: Context): File {
-        val folder = context.createDeviceProtectedStorageContext().getSharedPreferences("rivo_prefs", Context.MODE_PRIVATE)
-            .getInt("call_recording_folder", 0)
-        val selected = when (folder) {
-            1 -> context.getExternalFilesDir(Environment.DIRECTORY_RECORDINGS)?.let { File(it, DIRECTORY_NAME) }
-                ?: throw RecordingFailure(RecordingError.STORAGE)
-            2 -> File(context.filesDir, DIRECTORY_NAME)
-            3 -> File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_RECORDINGS), DIRECTORY_NAME)
-            else -> null
-        }
-        if (selected != null) {
-            if (!isWritableDirectory(selected)) throw RecordingFailure(RecordingError.STORAGE)
-            return selected
-        }
-        // 1. If All Files Access is granted, allow direct root storage
-        if (hasStoragePermission(context)) {
-            val directInternal = File(Environment.getExternalStorageDirectory(), DIRECTORY_NAME)
-            if (isWritableDirectory(directInternal)) {
-                return directInternal
-            }
-        }
-
-        // 2. Standard public Recordings folder: /storage/emulated/0/Recordings/Rivo Recordings
-        val pubRecordings = File(
-            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_RECORDINGS),
-            DIRECTORY_NAME
-        )
-        if (isWritableDirectory(pubRecordings)) {
-            return pubRecordings
-        }
-
-        // 3. Standard public Music folder: /storage/emulated/0/Music/Rivo Recordings
-        val pubMusic = File(
-            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC),
-            DIRECTORY_NAME
-        )
-        if (isWritableDirectory(pubMusic)) {
-            return pubMusic
-        }
-
-        // 4. App-specific external storage (always writable)
-        val extDir = context.getExternalFilesDir(Environment.DIRECTORY_RECORDINGS)
-            ?: context.getExternalFilesDir(null)
-        if (extDir != null) {
-            val dir = File(extDir, DIRECTORY_NAME)
-            if (isWritableDirectory(dir)) {
-                return dir
-            }
-        }
-
-        // 5. Ultimate fallback: internal app sandbox
-        val internalDir = File(context.filesDir, DIRECTORY_NAME)
-        if (!internalDir.exists()) internalDir.mkdirs()
-        return internalDir
+        val dir = File(context.filesDir, DIRECTORY_NAME)
+        if (!isWritableDirectory(dir)) throw RecordingFailure(RecordingError.STORAGE)
+        return dir
     }
 
     fun getAllRecordingDirectories(context: Context): List<File> {

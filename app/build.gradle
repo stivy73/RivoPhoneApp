@@ -103,10 +103,18 @@ android {
             dimension "distribution"
             isDefault = false
         }
+        cloud {
+            dimension "distribution"
+        }
         foss {
             dimension "distribution"
             isDefault = true
         }
+    }
+
+    sourceSets {
+        cloud.java.srcDirs += ['src/google/java', 'src/foss/java/com/grinch/rivo4/view/components/ad']
+        play.java.srcDirs += ['src/google/java']
     }
 
     applicationVariants.all { variant ->
@@ -144,6 +152,13 @@ afterEvaluate {
 
 dependencies {
     playImplementation 'com.google.android.gms:play-services-ads:23.6.0'
+    cloudImplementation 'com.google.android.gms:play-services-auth:22.0.0'
+    playImplementation 'com.google.android.gms:play-services-auth:22.0.0'
+    implementation 'androidx.work:work-runtime-ktx:2.10.1'
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+    testImplementation 'com.squareup.okhttp3:mockwebserver:4.12.0'
+    testImplementation 'org.json:json:20240303'
+
     implementation platform('androidx.compose:compose-bom:2025.12.01')
     implementation 'androidx.compose.ui:ui'
     implementation 'androidx.compose.material3:material3:1.5.0-alpha18'

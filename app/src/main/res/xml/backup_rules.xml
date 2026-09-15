@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <full-backup-content>
     <exclude domain="sharedpref" path="caller_identification.xml" />
+        <exclude domain="sharedpref" path="drive_backup.xml" />
+        <exclude domain="file" path="Rivo Recordings/" />
     
 </full-backup-content>

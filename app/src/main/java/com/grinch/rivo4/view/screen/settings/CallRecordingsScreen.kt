@@ -883,19 +883,7 @@ fun CallRecordingsContent(
                                 prefs.setInt("call_recording_bitrate", bitrate)
                             }
                         )
-                        RivoSelectListItem(
-                            headline = stringResource(R.string.recorder_folder),
-                            supporting = stringResource(R.string.recorder_storage_hint),
-                            leadingIcon = Icons.Outlined.Folder,
-                            options = listOf(
-                                stringResource(R.string.recorder_storage_auto) to 0,
-                                stringResource(R.string.recorder_storage_app) to 1,
-                                stringResource(R.string.recorder_storage_internal) to 2,
-                                stringResource(R.string.recorder_storage_public) to 3
-                            ),
-                            selectedValue = prefs.getInt("call_recording_folder", 0),
-                            onValueChange = { prefs.setInt("call_recording_folder", it) }
-                        )
+                        Text(stringResource(R.string.drive_private_storage))
                         val folderPath = remember(settingsState, refreshKey) {
                             runCatching { CallRecorder.getRecordingsDirectory(context).absolutePath }.getOrNull()
                         }
@@ -907,6 +895,8 @@ fun CallRecordingsContent(
                         Text(stringResource(R.string.recorder_diagnostic_values, "4.0", sourceKey, codecKey, bitrate))
                     }
                 }
+
+                item { com.grinch.rivo4.view.screen.settings.DriveBackupCard() }
 
                 // 2. Direct Internal Storage Access Card (only shown when permission not granted)
                 item {

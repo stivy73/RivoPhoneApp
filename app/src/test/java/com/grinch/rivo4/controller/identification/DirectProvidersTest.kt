@@ -106,4 +106,32 @@ class DirectProvidersTest {
         val error = ProviderFailure(status)
         assertFalse(error.toString().contains("synthetic-secret")); assertNull(error.cause)
     }
+    @Test fun businessSearchUsesMinimalBusinessFieldsAndKeepsResultsTransient() = runTest {
+        val client = DirectProviders({ emptyMap() }, ProviderExchange { _, headers, body, _ ->
+            assertEquals(
+                "places.id,places.displayName,places.internationalPhoneNumber,places.nationalPhoneNumber,places.shortFormattedAddress,places.formattedAddress,places.primaryTypeDisplayName,places.googleMapsUri,places.attributions",
+                headers["X-Goog-FieldMask"]
+            )
+            val request = obj(body!!)
+            assertEquals("Mezzosale", request["textQuery"]!!.jsonPrimitive.content)
+            assertEquals("IT", request["regionCode"]!!.jsonPrimitive.content)
+            assertEquals(5, request["pageSize"]!!.jsonPrimitive.int)
+            obj("""{"places":[{"id":"place-1","displayName":{"text":"Mezzosale"},"internationalPhoneNumber":"+39 0438 460195","shortFormattedAddress":"Treviso","primaryTypeDisplayName":{"text":"Ristorante"},"googleMapsUri":"https://maps.google.test/place-1"}]}""")
+        })
+        val result = client.searchBusinesses("synthetic", " Mezzosale ")
+        assertEquals(1, result.size)
+        assertEquals("place-1", result.single().id)
+        assertEquals("Mezzosale", result.single().name)
+        assertEquals("+39 0438 460195", result.single().phone)
+        assertEquals("Treviso", result.single().address)
+    }
+    @Test fun businessSearchDropsIncompleteAndDuplicatePlaces() {
+        val results = ProviderPayloads.businesses(obj("""{"places":[
+            {"id":"same","displayName":{"text":"First"}},
+            {"id":"same","displayName":{"text":"Second"}},
+            {"id":"missing-name"}
+        ]}"""))
+        assertEquals(1, results.size)
+        assertEquals("First", results.single().name)
+    }
 }

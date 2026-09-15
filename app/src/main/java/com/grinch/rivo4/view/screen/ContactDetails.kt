@@ -886,8 +886,8 @@ fun ContactDetailsScreen(
                                         supporting = stringResource(R.string.label_address),
                                         leadingIcon = Icons.Default.LocationOn,
                                         onClick = {
-                                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=$address"))
-                                            context.startActivity(intent)
+                                            val mapsUrl = "https://www.google.com/maps/search/?api=1&query=${Uri.encode(address)}"
+                                            runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(mapsUrl))) }
                                         }
                                     )
                                     if (index < fullContact!!.addresses.size - 1) {

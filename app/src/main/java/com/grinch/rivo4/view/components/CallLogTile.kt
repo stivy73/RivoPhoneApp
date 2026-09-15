@@ -119,6 +119,9 @@ fun CallLogTileSimple(
                         badgeIcon = icon,
                         badgeColor = badgeColor,
                         headlineColor = headlineColor,
+                        headlineStyle = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+                        headlineMaxLines = 1,
+                        isCompact = true,
                         onClick = onClick,
                         onLongClick = onLongClick,
                         selected = selected
@@ -278,12 +281,13 @@ fun CallLogTile(
                     com.grinch.rivo4.view.screen.settings.CallerActions(log.number)
                     IconButton(
                         onClick = { onButtonClick(log) },
-                        modifier = Modifier.padding(end = 8.dp)
+                        modifier = Modifier.size(40.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.Call,
                             contentDescription = stringResource(R.string.action_call),
-                            tint = MaterialTheme.colorScheme.primary
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(22.dp)
                         )
                     }
                 }

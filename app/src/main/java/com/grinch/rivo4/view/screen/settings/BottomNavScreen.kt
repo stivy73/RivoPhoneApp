@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.grinch.rivo4.R
 import com.grinch.rivo4.controller.util.PreferenceManager
@@ -198,7 +199,7 @@ fun BottomNavScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 12.dp, vertical = 6.dp),
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Surface(
@@ -220,36 +221,45 @@ fun BottomNavScreen(
                                 Text(
                                     text = navigationTabLabel(tabId),
                                     style = MaterialTheme.typography.bodyLarge,
-                                    fontWeight = FontWeight.SemiBold
+                                    fontWeight = FontWeight.SemiBold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
-                                Text(
-                                    text = if (isVisible) {
-                                        stringResource(R.string.settings_bottom_nav_position, visibleTabs.indexOf(tabId) + 1)
-                                    } else {
-                                        stringResource(R.string.settings_bottom_nav_hidden)
-                                    },
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = if (isVisible) {
+                                            stringResource(R.string.settings_bottom_nav_position, visibleTabs.indexOf(tabId) + 1)
+                                        } else {
+                                            stringResource(R.string.settings_bottom_nav_hidden)
+                                        },
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1
+                                    )
+                                    Spacer(Modifier.weight(1f))
+                                    IconButton(
+                                        onClick = { move(index, -1) },
+                                        enabled = index > 0,
+                                        modifier = Modifier.size(36.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.KeyboardArrowUp,
+                                            contentDescription = stringResource(R.string.settings_bottom_nav_move_up)
+                                        )
+                                    }
+                                    IconButton(
+                                        onClick = { move(index, 1) },
+                                        enabled = index < order.lastIndex,
+                                        modifier = Modifier.size(36.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.KeyboardArrowDown,
+                                            contentDescription = stringResource(R.string.settings_bottom_nav_move_down)
+                                        )
+                                    }
+                                }
                             }
-                            IconButton(
-                                onClick = { move(index, -1) },
-                                enabled = index > 0
-                            ) {
-                                Icon(
-                                    Icons.Default.KeyboardArrowUp,
-                                    contentDescription = stringResource(R.string.settings_bottom_nav_move_up)
-                                )
-                            }
-                            IconButton(
-                                onClick = { move(index, 1) },
-                                enabled = index < order.lastIndex
-                            ) {
-                                Icon(
-                                    Icons.Default.KeyboardArrowDown,
-                                    contentDescription = stringResource(R.string.settings_bottom_nav_move_down)
-                                )
-                            }
+                            Spacer(Modifier.width(8.dp))
                             Switch(
                                 checked = isVisible,
                                 enabled = !isVisible || visibleTabs.size > 1,

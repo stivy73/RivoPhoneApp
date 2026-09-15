@@ -763,6 +763,10 @@
     <string name="ui_if_rivo_has_made_managing_your_calls_better_please_consider_le_1">Se Rivo ti aiuta a gestire le chiamate, puoi lasciare una valutazione a 5 stelle su Google Play. Il tuo sostegno ci aiuta a mantenere l’app gratuita e indipendente!</string>
     <string name="ui_this_week_12">Questa settimana</string>
     <string name="ui_this_month_13">Questo mese</string>
+    <string name="analytics_today_compact">Oggi</string>
+    <string name="analytics_week_compact">7 giorni</string>
+    <string name="analytics_month_compact">30 giorni</string>
+    <string name="analytics_all_time_compact">Sempre</string>
     <string name="ui_all_time_14">Sempre</string>
     <string name="ui_primary_sim_15">SIM principale</string>
     <string name="ui_can_t_talk_now_what_s_up_32">Non posso parlare ora. Che succede?</string>

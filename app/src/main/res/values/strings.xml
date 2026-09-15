@@ -865,6 +865,10 @@
     <string name="ui_if_rivo_has_made_managing_your_calls_better_please_consider_le_1">If Rivo has made managing your calls better, please consider leaving a 5-star rating on Google Play. Your support helps us keep the app free and independent!</string>
     <string name="ui_this_week_12">This Week</string>
     <string name="ui_this_month_13">This Month</string>
+    <string name="analytics_today_compact">Today</string>
+    <string name="analytics_week_compact">7 days</string>
+    <string name="analytics_month_compact">30 days</string>
+    <string name="analytics_all_time_compact">All</string>
     <string name="ui_all_time_14">All Time</string>
     <string name="ui_primary_sim_15">Primary SIM</string>
     <string name="ui_can_t_talk_now_what_s_up_32">Can\'t talk now. What\'s up?</string>

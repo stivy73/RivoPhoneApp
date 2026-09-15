@@ -265,7 +265,7 @@ fun FavoriteCircleItem(
     )
 
     Column(
-        modifier = modifier.width(76.dp),
+        modifier = modifier.width(96.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
@@ -299,9 +299,9 @@ fun FavoriteCircleItem(
             }
         }
         Text(
-            text = com.grinch.rivo4.controller.util.ContactUtils.formatContactName(contact.name, displayOrder).split(" ").firstOrNull() ?: "",
+            text = com.grinch.rivo4.controller.util.ContactUtils.formatContactName(contact.name, displayOrder),
             style = MaterialTheme.typography.labelMedium,
-            maxLines = 1,
+            maxLines = 2,
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurface

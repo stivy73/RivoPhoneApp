@@ -40,3 +40,11 @@ Rivo Personal is a **modified fork of RivoPhoneApp**, containing recording compo
 The APK is a debug test build of **Rivo Personal**, package `it.stivy.rivo.personal.debug`. Its corresponding source, build scripts, dependency declarations, exact baseline mapping and license texts are available in this repository. The GitHub Actions artifact includes `SOURCE_COMMIT.txt` and `SHA256SUMS.txt`; retrieve the exact source with `git checkout <SOURCE_COMMIT>`.
 
 The combined application is distributed under the supplied GPL terms, retaining the additional terms applicable to the Shizu-derived components and the Apache notices applicable to scrcpy. No upstream trademark endorsement, store publication or warranty is asserted. Other original Rivo dependencies and their versions remain declared in Gradle.
+
+## Optional Cloud OAuth distribution
+
+The `cloud` variant (ad-free) and `play` variant use Google Play services Auth 22.0.0
+under the Google APIs terms: https://developers.google.com/terms . This proprietary
+SDK is excluded from `foss`. OAuth follows https://developer.android.com/identity/authorization .
+WorkManager 2.10.1 (AndroidX, Apache-2.0) schedules backups; OkHttp 4.12.0
+(Square, Apache-2.0, https://github.com/square/okhttp) performs cancellable Drive requests.

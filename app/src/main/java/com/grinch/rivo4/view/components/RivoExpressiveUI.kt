@@ -374,6 +374,7 @@ fun RivoListItem(
     onLongClickLabel: String? = null,
     containerColor: Color = Color.Unspecified,
     headlineStyle: TextStyle = RivoListItemDefaults.headlineStyle(),
+    headlineMaxLines: Int = 2,
     leadingContent: (@Composable () -> Unit)? = null,
     supportingContent: (@Composable ColumnScope.() -> Unit)? = null,
     trailingContent: (@Composable RowScope.() -> Unit)? = null
@@ -511,7 +512,7 @@ fun RivoListItem(
                     text = headline,
                     style = headlineStyle,
                     color = headlineColor,
-                    maxLines = 2,
+                    maxLines = headlineMaxLines,
                     overflow = TextOverflow.Ellipsis
                 )
                 if (supporting != null) {

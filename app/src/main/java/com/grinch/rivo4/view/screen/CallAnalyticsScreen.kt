@@ -91,9 +91,15 @@ fun CallAnalyticsScreen(
                             SegmentedButton(
                                 selected = selectedRange == range,
                                 onClick = { viewModel.setTimeRange(range) },
-                                shape = SegmentedButtonDefaults.itemShape(index = index, count = AnalyticsTimeRange.entries.size)
+                                shape = SegmentedButtonDefaults.itemShape(index = index, count = AnalyticsTimeRange.entries.size),
+                                icon = {}
                             ) {
-                                Text(range.label, maxLines = 1, style = MaterialTheme.typography.labelMedium)
+                                Text(
+                                    text = range.compactLabel,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Clip,
+                                    style = MaterialTheme.typography.labelSmall
+                                )
                             }
                         }
                     }

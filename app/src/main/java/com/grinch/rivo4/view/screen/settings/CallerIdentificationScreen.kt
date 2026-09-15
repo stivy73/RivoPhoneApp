@@ -50,8 +50,8 @@ fun CallerProvenance(label: CallerLabel?) {
 @Composable
 fun CallerActions(number: String) {
     var open by remember(number) { mutableStateOf(false) }
-    IconButton(onClick = { open = true }) {
-        Icon(Icons.Default.Search, contentDescription = stringResource(R.string.caller_actions))
+    IconButton(onClick = { open = true }, modifier = Modifier.size(40.dp)) {
+        Icon(Icons.Default.Search, contentDescription = stringResource(R.string.caller_actions), modifier = Modifier.size(22.dp))
     }
     if (open) CallerEditor(number, onDismiss = { open = false })
 }

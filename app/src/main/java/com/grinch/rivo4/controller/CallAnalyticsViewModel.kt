@@ -13,12 +13,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.util.Calendar
 
-enum class AnalyticsTimeRange(val labelRes: Int) {
-    TODAY(com.grinch.rivo4.R.string.ui_today_380),
-    THIS_WEEK(com.grinch.rivo4.R.string.ui_this_week_12),
-    THIS_MONTH(com.grinch.rivo4.R.string.ui_this_month_13),
-    ALL_TIME(com.grinch.rivo4.R.string.ui_all_time_14);
+enum class AnalyticsTimeRange(val labelRes: Int, val compactLabelRes: Int) {
+    TODAY(com.grinch.rivo4.R.string.ui_today_380, com.grinch.rivo4.R.string.analytics_today_compact),
+    THIS_WEEK(com.grinch.rivo4.R.string.ui_this_week_12, com.grinch.rivo4.R.string.analytics_week_compact),
+    THIS_MONTH(com.grinch.rivo4.R.string.ui_this_month_13, com.grinch.rivo4.R.string.analytics_month_compact),
+    ALL_TIME(com.grinch.rivo4.R.string.ui_all_time_14, com.grinch.rivo4.R.string.analytics_all_time_compact);
     val label: String get() = RivoText.get(labelRes)
+    val compactLabel: String get() = RivoText.get(compactLabelRes)
 }
 
 data class TopContactStat(

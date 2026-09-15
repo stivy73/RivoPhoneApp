@@ -8,7 +8,6 @@
 package com.grinch.rivo4.controller.recording
 
 import android.content.Context
-import android.media.MediaScannerConnection
 import android.os.ParcelFileDescriptor
 import com.grinch.rivo4.IShellService
 import com.grinch.rivo4.controller.CallRecorder
@@ -126,9 +125,10 @@ class AudioRecordingEngine(private val context: Context, private val label: Stri
                     // Preserve the recoverable partial file, do not announce it as a saved recording.
                     throw RecordingFailure(RecordingError.WRITE)
                 }
-                MediaScannerConnection.scanFile(context, arrayOf(final.absolutePath),
-                    arrayOf(CallRecorder.mimeType(final)), null)
                 CallRecorder.recordingSaved()
+                // Enqueue only after muxer/output closure and atomic finalization. Backup failure
+                // must never change the outcome of the completed recording.
+                runCatching { com.grinch.rivo4.controller.backup.RecordingBackup.scheduleAutomatic(context) }
             } else if (!saved.delete() && saved.exists()) {
                 failed = true
             }

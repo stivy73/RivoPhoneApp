@@ -1,7 +1,7 @@
 name: Validate Rivo Personal FOSS
 on:
   push:
-    branches: [main, codex/shizu-recorder-it, codex/caller-identification, codex/direct-provider-keys]
+    branches: [main, codex/shizu-recorder-it, codex/caller-identification, codex/direct-provider-keys, codex/drive-recording-backup]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -36,7 +36,7 @@ jobs:
       - name: Test historical caller proxy
         run: node --test backend/test/*.test.mjs
       - name: Clean, test, lint and build FOSS debug
-        run: ./gradlew clean :app:testFossDebugUnitTest :app:lintFossDebug :app:assembleFossDebug
+        run: ./gradlew clean :app:testFossDebugUnitTest :app:testCloudDebugUnitTest :app:lintFossDebug :app:lintCloudDebug :app:assembleFossDebug :app:assembleCloudDebug
       - name: Scan generated APK for embedded provider keys
         run: python3 scripts/check-provider-security.py app/build/outputs/apk/foss/debug/*.apk
       - name: Compile Android device tests
@@ -45,6 +45,7 @@ jobs:
         run: |
           mkdir -p artifacts
           cp app/build/outputs/apk/foss/debug/*.apk artifacts/
+          cp app/build/outputs/apk/cloud/debug/*.apk artifacts/
           git rev-parse HEAD > artifacts/SOURCE_COMMIT.txt
           cd artifacts
           sha256sum *.apk > SHA256SUMS.txt

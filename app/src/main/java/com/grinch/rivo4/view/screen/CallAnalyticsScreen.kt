@@ -1,5 +1,6 @@
 package com.grinch.rivo4.view.screen
 
+import com.grinch.rivo4.controller.util.RivoText
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -56,7 +57,7 @@ fun CallAnalyticsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Call Analytics & Tracking", fontWeight = FontWeight.Bold) },
+                title = { Text(RivoText.get(com.grinch.rivo4.R.string.ui_call_analytics_tracking_139), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = { navigator.navigateUp() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
@@ -64,7 +65,7 @@ fun CallAnalyticsScreen(
                 },
                 actions = {
                     IconButton(onClick = { viewModel.loadAnalytics() }) {
-                        Icon(Icons.Outlined.Refresh, contentDescription = "Refresh")
+                        Icon(Icons.Outlined.Refresh, contentDescription = RivoText.get(com.grinch.rivo4.R.string.ui_refresh_140))
                     }
                 }
             )
@@ -111,7 +112,7 @@ fun CallAnalyticsScreen(
                 // Most Talked Person Leaderboard
                 item {
                     Text(
-                        text = "Most Talked Persons",
+                        text = RivoText.get(com.grinch.rivo4.R.string.ui_most_talked_persons_141),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
@@ -132,7 +133,7 @@ fun CallAnalyticsScreen(
                             ) {
                                 Icon(Icons.Outlined.PhoneDisabled, contentDescription = null, modifier = Modifier.size(36.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Spacer(Modifier.height(8.dp))
-                                Text("No call records found for this period", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(RivoText.get(com.grinch.rivo4.R.string.ui_no_call_records_found_for_this_period_142), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                     }
@@ -152,7 +153,7 @@ fun CallAnalyticsScreen(
                 if (analytics.simUsage.size > 1) {
                     item {
                         RivoExpressiveCard(
-                            title = "SIM Usage Breakdown",
+                            title = RivoText.get(com.grinch.rivo4.R.string.ui_sim_usage_breakdown_143),
                             icon = Icons.Outlined.SimCard
                         ) {
                             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -201,7 +202,7 @@ private fun HeroTalkTimeCard(analytics: CallAnalyticsSummary) {
             }
             Spacer(Modifier.height(12.dp))
             Text(
-                text = "Total Talk Time",
+                text = RivoText.get(com.grinch.rivo4.R.string.ui_total_talk_time_144),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
             )
@@ -217,9 +218,9 @@ private fun HeroTalkTimeCard(analytics: CallAnalyticsSummary) {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                HeroMetricItem(label = "Total Calls", value = "${analytics.totalCalls}")
-                HeroMetricItem(label = "Avg Duration", value = formatShortDuration(analytics.avgDurationSeconds))
-                HeroMetricItem(label = "Missed", value = "${analytics.missedCalls}")
+                HeroMetricItem(label = androidx.compose.ui.res.stringResource(com.grinch.rivo4.R.string.metrics_total_calls), value = "${analytics.totalCalls}")
+                HeroMetricItem(label = androidx.compose.ui.res.stringResource(com.grinch.rivo4.R.string.metrics_average_duration), value = formatShortDuration(analytics.avgDurationSeconds))
+                HeroMetricItem(label = androidx.compose.ui.res.stringResource(com.grinch.rivo4.R.string.metrics_missed), value = "${analytics.missedCalls}")
             }
         }
     }
@@ -244,7 +245,7 @@ private fun HeroMetricItem(label: String, value: String) {
 @Composable
 private fun CallDistributionCard(analytics: CallAnalyticsSummary) {
     RivoExpressiveCard(
-        title = "Call Breakdown",
+        title = RivoText.get(com.grinch.rivo4.R.string.ui_call_breakdown_145),
         icon = Icons.Outlined.PieChart
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -294,17 +295,17 @@ private fun CallDistributionCard(analytics: CallAnalyticsSummary) {
             ) {
                 BreakdownLegend(
                     color = Color(0xFF2E7D32),
-                    label = "Incoming",
+                    label = androidx.compose.ui.res.stringResource(com.grinch.rivo4.R.string.metrics_incoming),
                     count = analytics.incomingCalls
                 )
                 BreakdownLegend(
                     color = MaterialTheme.colorScheme.primary,
-                    label = "Outgoing",
+                    label = androidx.compose.ui.res.stringResource(com.grinch.rivo4.R.string.metrics_outgoing),
                     count = analytics.outgoingCalls
                 )
                 BreakdownLegend(
                     color = MaterialTheme.colorScheme.error,
-                    label = "Missed",
+                    label = androidx.compose.ui.res.stringResource(com.grinch.rivo4.R.string.metrics_missed),
                     count = analytics.missedCalls + analytics.rejectedCalls
                 )
             }
@@ -394,7 +395,7 @@ private fun TopContactLeaderboardItem(
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = "${contact.totalCalls} calls (${contact.incomingCount} in, ${contact.outgoingCount} out)",
+                    text = RivoText.get(com.grinch.rivo4.R.string.ui_calls_in_out_148, (contact.totalCalls).toString(), (contact.incomingCount).toString(), (contact.outgoingCount).toString()),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -410,7 +411,7 @@ private fun TopContactLeaderboardItem(
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = "talked",
+                    text = RivoText.get(com.grinch.rivo4.R.string.ui_talked_149),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

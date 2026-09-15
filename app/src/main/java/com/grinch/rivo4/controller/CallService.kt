@@ -26,7 +26,9 @@ import com.grinch.rivo4.controller.sensor.FlipToSilenceManager
 import com.grinch.rivo4.controller.util.CallUiHelper
 import com.grinch.rivo4.controller.util.PreferenceManager
 import com.grinch.rivo4.modal.`interface`.IContactsRepository
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import org.koin.android.ext.android.inject
@@ -41,10 +43,12 @@ data class CallSession(
 class CallService : InCallService() {
 
     private val contactsRepository: IContactsRepository by inject()
+    private val callerIdentification: com.grinch.rivo4.controller.identification.CallerIdentification by inject()
     private val preferenceManager: PreferenceManager by inject()
     private val serviceScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var redialCount = 0
     private val callStartTimes = mutableMapOf<Call, Long>()
+    private val identifiedIncomingCalls = mutableSetOf<Call>()
     private var flipToSilenceManager: FlipToSilenceManager? = null
 
     private fun getContactBitmap(photoUri: String?): Bitmap? {
@@ -183,6 +187,13 @@ class CallService : InCallService() {
 
     override fun onCreate() {
         super.onCreate()
+        serviceScope.launch {
+            callerIdentification.revision.collect {
+                _currentCallSession.value?.call?.takeIf { it.state != Call.STATE_DISCONNECTED }?.let {
+                    withContext(Dispatchers.IO) { updateNotification(it, identityUpdate = true) }
+                }
+            }
+        }
         instance = this
         flipToSilenceManager = FlipToSilenceManager(this)
         serviceScope.launch {
@@ -198,6 +209,7 @@ class CallService : InCallService() {
         override fun onStateChanged(call: Call, state: Int) {
             super.onStateChanged(call, state)
             updateCallState()
+            identifyIncomingCall(call)
             
             if (state != Call.STATE_RINGING) {
                 val hasRinging = getCalls()?.any { it.state == Call.STATE_RINGING } == true
@@ -229,7 +241,7 @@ class CallService : InCallService() {
     private fun startAutoRecordingIfEnabled(call: Call) {
         if (!preferenceManager.getBoolean(PreferenceManager.KEY_CALL_RECORDING, true)) return
         if (!preferenceManager.getBoolean(PreferenceManager.KEY_CALL_RECORDING_AUTO, false)) return
-        if (CallRecorder.isRecording.value) return
+        if (CallRecorder.state.value.busy && CallRecorder.state.value.phase != com.grinch.rivo4.controller.recording.RecordingPhase.STOPPING) return
 
         val filter = preferenceManager.getInt(PreferenceManager.KEY_CALL_RECORDING_FILTER, PreferenceManager.RECORD_FILTER_ALL)
         val isIncoming = call.details.callDirection == Call.Details.DIRECTION_INCOMING
@@ -249,14 +261,20 @@ class CallService : InCallService() {
             if (filter == PreferenceManager.RECORD_FILTER_CONTACTS_ONLY && !isKnownContact) return@launch
 
             val name = contact?.name ?: number.ifEmpty { getString(R.string.label_unknown_number) }
-            CallRecorder.start(this@CallService, name)
+            // A consecutive call may become active while the preceding recording is draining.
+            if (withTimeoutOrNull(20_000) { CallRecorder.state.first { !it.busy } } == null) return@launch
+            withContext(Dispatchers.Main) {
+                if (call.state == Call.STATE_ACTIVE && getCalls()?.contains(call) == true) {
+                    CallRecorder.start(this@CallService, name)
+                }
+            }
         }
     }
 
     private fun handleDisconnect(call: Call, cause: DisconnectCause?) {
         val number = call.details.handle?.schemeSpecificPart ?: ""
 
-        if (CallRecorder.isRecording.value &&
+        if (CallRecorder.state.value.busy &&
             (getCalls()?.none { it != call && it.state == Call.STATE_ACTIVE } != false)) {
             CallRecorder.stop()
         }
@@ -384,7 +402,7 @@ class CallService : InCallService() {
         }
 
         val intent = Intent(this, com.grinch.rivo4.MainActivity::class.java).apply {
-            action = "com.grinch.rivo4.ACTION_VIEW_RECENTS"
+            action = com.grinch.rivo4.BuildConfig.APPLICATION_ID + ".ACTION_VIEW_RECENTS"
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
         val pendingIntent = PendingIntent.getActivity(this, 10, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
@@ -491,10 +509,19 @@ class CallService : InCallService() {
         }
 
         updateNotification(call)
+        identifyIncomingCall(call)
+    }
+
+    private fun identifyIncomingCall(call: Call) {
+        if (call.state == Call.STATE_RINGING && identifiedIncomingCalls.add(call)) {
+            callerIdentification.identify(call.details.handle?.schemeSpecificPart.orEmpty(),
+                call.details.handlePresentation == TelecomManager.PRESENTATION_ALLOWED)
+        }
     }
 
     override fun onCallRemoved(call: Call) {
         super.onCallRemoved(call)
+        identifiedIncomingCalls.remove(call)
         call.unregisterCallback(callCallback)
         updateCallState()
         val calls = getCalls() ?: emptyList()
@@ -503,7 +530,7 @@ class CallService : InCallService() {
             flipToSilenceManager?.stopListening()
         }
         if (calls.isEmpty()) {
-            if (CallRecorder.isRecording.value) CallRecorder.stop()
+            if (CallRecorder.state.value.busy) CallRecorder.stop()
             com.grinch.rivo4.controller.floating.FloatingCallService.stop(this)
             removeForeground()
             cancelNotification()
@@ -535,7 +562,9 @@ class CallService : InCallService() {
         return super.onStartCommand(intent, flags, startId)
     }
 
-    private fun updateNotification(call: Call) {
+    private fun updateNotification(call: Call, identityUpdate: Boolean = false) {
+        val renderedState = call.state
+        val renderedIdentityRevision = callerIdentification.revision.value
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         
         val channel = NotificationChannel(
@@ -570,7 +599,7 @@ class CallService : InCallService() {
 
         val contactName = when {
             contact != null -> contact.name
-            number.isNotEmpty() -> number
+            number.isNotEmpty() -> callerIdentification.display(callerIdentification.label(number)) ?: number
             else -> getString(R.string.label_unknown_number)
         }
         
@@ -709,13 +738,22 @@ class CallService : InCallService() {
             )
         }
 
+        if (identityUpdate) {
+            if (_currentCallSession.value?.call !== call || call.state == Call.STATE_DISCONNECTED) return
+            builder.setOnlyAlertOnce(true)
+        }
         val notification = builder.build()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            var fgsType = android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_PHONE_CALL
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && CallRecorder.hasAudioPermission(this)) {
-                fgsType = fgsType or android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
+        if (identityUpdate) {
+            serviceScope.launch {
+                if (_currentCallSession.value?.call === call && call.state == renderedState && call.state != Call.STATE_DISCONNECTED &&
+                    callerIdentification.revision.value == renderedIdentityRevision) {
+                    startForeground(NOTIFICATION_ID, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_PHONE_CALL)
+                }
             }
-            startForeground(NOTIFICATION_ID, notification, fgsType)
+            return
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(NOTIFICATION_ID, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_PHONE_CALL)
         } else {
             startForeground(NOTIFICATION_ID, notification)
         }
@@ -729,7 +767,7 @@ class CallService : InCallService() {
     override fun onDestroy() {
         super.onDestroy()
         flipToSilenceManager?.stopListening()
-        if (CallRecorder.isRecording.value) CallRecorder.stop()
+        if (CallRecorder.state.value.busy) CallRecorder.stop()
         if (instance == this) instance = null
         serviceScope.cancel()
     }

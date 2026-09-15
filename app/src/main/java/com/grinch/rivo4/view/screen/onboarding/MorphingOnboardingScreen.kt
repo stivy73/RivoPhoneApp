@@ -1,5 +1,6 @@
 package com.grinch.rivo4.view.screen.onboarding
 
+import com.grinch.rivo4.controller.util.RivoText
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -48,6 +49,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
@@ -80,6 +82,7 @@ import com.grinch.rivo4.view.theme.RivoMotion
 import com.grinch.rivo4.view.theme.rememberRivoMorph
 import com.grinch.rivo4.view.theme.rememberRivoMorphShape
 import com.grinch.rivo4.view.theme.rivoCornerDp
+import kotlinx.coroutines.delay
 
 data class MorphingPage(
     val icon: ImageVector,
@@ -145,13 +148,25 @@ fun MorphingOnboardingScreen(onFinished: () -> Unit) {
         }
     }
 
-    val essentialItems = remember(refreshTrigger) {
+    val essentialItems = remember(refreshTrigger, currentStage) {
         PermissionChecklistHelper.getEssentialItems(context)
     }
-    val recommendedItems = remember(refreshTrigger) {
+    val recommendedItems = remember(refreshTrigger, currentStage) {
         PermissionChecklistHelper.getRecommendedItems(context)
     }
     val allEssentialGranted = essentialItems.all { it.isGranted }
+
+    // ColorOS may complete the battery-optimization request without pausing this
+    // activity or delivering an Activity Result. Brief polling keeps the card in
+    // sync even when neither of the normal refresh callbacks is dispatched.
+    LaunchedEffect(currentStage) {
+        if (currentStage == STAGE_RECOMMENDED) {
+            repeat(10) {
+                delay(500)
+                refreshTrigger++
+            }
+        }
+    }
 
     // Activity result launchers for permissions & intents
     val roleLauncher = rememberLauncherForActivityResult(
@@ -219,9 +234,6 @@ fun MorphingOnboardingScreen(onFinished: () -> Unit) {
             !PermissionChecklistHelper.hasNotificationPermission(context)
         ) {
             ungrantedRuntime.add(android.Manifest.permission.POST_NOTIFICATIONS)
-        }
-        if (!PermissionChecklistHelper.hasAudioRecordPermission(context)) {
-            ungrantedRuntime.add(android.Manifest.permission.RECORD_AUDIO)
         }
 
         if (ungrantedRuntime.isNotEmpty()) {
@@ -476,7 +488,7 @@ private fun IntroStage(
                     modifier = Modifier.height(52.dp)
                 ) {
                     Text(
-                        text = if (currentPage == pages.size - 1) "Set Up Permissions" else stringResource(R.string.onboarding_next),
+                        text = if (currentPage == pages.size - 1) RivoText.get(com.grinch.rivo4.R.string.ui_set_up_permissions_461) else stringResource(R.string.onboarding_next),
                         style = MaterialTheme.typography.labelLargeEmphasized,
                         modifier = Modifier.padding(horizontal = 16.dp)
                     )
@@ -534,13 +546,13 @@ private fun EssentialPermissionsStage(
                 Spacer(modifier = Modifier.width(16.dp))
                 Column {
                     Text(
-                        text = "Essential Permissions",
+                        text = RivoText.get(com.grinch.rivo4.R.string.ui_essential_permissions_206),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "Stage 1 of 2 • $grantedCount of ${items.size} granted",
+                        text = RivoText.get(com.grinch.rivo4.R.string.ui_stage_1_of_2_of_granted_462, (grantedCount).toString(), (items.size).toString()),
                         style = MaterialTheme.typography.labelMedium,
                         color = if (allGranted) Color(0xFF386A20) else MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.SemiBold
@@ -551,7 +563,7 @@ private fun EssentialPermissionsStage(
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = "To make and receive calls, display caller names, and organize your history, Rivo needs these core phone permissions.",
+                text = RivoText.get(com.grinch.rivo4.R.string.ui_to_make_and_receive_calls_display_caller_names_and_organize_yo_463),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -583,7 +595,7 @@ private fun EssentialPermissionsStage(
                     )
                 ) {
                     Text(
-                        text = "Continue to Features",
+                        text = RivoText.get(com.grinch.rivo4.R.string.ui_continue_to_features_464),
                         style = MaterialTheme.typography.labelLargeEmphasized
                     )
                 }
@@ -599,7 +611,7 @@ private fun EssentialPermissionsStage(
                     )
                 ) {
                     Text(
-                        text = "Grant All Essential",
+                        text = RivoText.get(com.grinch.rivo4.R.string.ui_grant_all_essential_465),
                         style = MaterialTheme.typography.labelLargeEmphasized
                     )
                 }
@@ -620,7 +632,7 @@ private fun EssentialPermissionsStage(
                 if (!allGranted) {
                     TextButton(onClick = onContinue) {
                         Text(
-                            text = "Skip for now",
+                            text = RivoText.get(com.grinch.rivo4.R.string.ui_skip_for_now_466),
                             style = MaterialTheme.typography.labelLargeEmphasized,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -676,13 +688,13 @@ private fun RecommendedPermissionsStage(
                 Spacer(modifier = Modifier.width(16.dp))
                 Column {
                     Text(
-                        text = "Recommended Features",
+                        text = RivoText.get(com.grinch.rivo4.R.string.ui_recommended_features_467),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "Stage 2 of 2 • $grantedCount of ${items.size} enabled",
+                        text = RivoText.get(com.grinch.rivo4.R.string.ui_stage_2_of_2_of_enabled_468, (grantedCount).toString(), (items.size).toString()),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.secondary,
                         fontWeight = FontWeight.SemiBold
@@ -693,7 +705,7 @@ private fun RecommendedPermissionsStage(
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = "These optional enhancements enable floating ongoing call controls, call recording, heads-up notifications, and reliable background calling.",
+                text = RivoText.get(com.grinch.rivo4.R.string.ui_these_optional_enhancements_enable_floating_ongoing_call_contr_469),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -724,7 +736,7 @@ private fun RecommendedPermissionsStage(
                 )
             ) {
                 Text(
-                    text = "Finish Setup",
+                    text = RivoText.get(com.grinch.rivo4.R.string.ui_finish_setup_470),
                     style = MaterialTheme.typography.labelLargeEmphasized
                 )
             }
@@ -743,7 +755,7 @@ private fun RecommendedPermissionsStage(
 
                 TextButton(onClick = onEnableRecommended) {
                     Text(
-                        text = "Enable Recommended",
+                        text = RivoText.get(com.grinch.rivo4.R.string.ui_enable_recommended_471),
                         style = MaterialTheme.typography.labelLargeEmphasized,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -792,7 +804,7 @@ private fun SetupCompleteStage(
         Spacer(modifier = Modifier.height(32.dp))
 
         Text(
-            text = "You're All Set!",
+            text = RivoText.get(com.grinch.rivo4.R.string.ui_you_re_all_set_472),
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface,
@@ -802,7 +814,7 @@ private fun SetupCompleteStage(
         Spacer(modifier = Modifier.height(12.dp))
 
         Text(
-            text = "Rivo Phone is ready. You have configured $totalGranted of $totalItems features. You can always review or update permissions anytime in Settings.",
+            text = RivoText.get(com.grinch.rivo4.R.string.ui_rivo_phone_is_ready_you_have_configured_of_features_you_can_al_473, (totalGranted).toString(), (totalItems).toString()),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -823,7 +835,7 @@ private fun SetupCompleteStage(
             )
         ) {
             Text(
-                text = "Start Using Rivo",
+                text = RivoText.get(com.grinch.rivo4.R.string.ui_start_using_rivo_474),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )

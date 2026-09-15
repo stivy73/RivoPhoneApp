@@ -1,5 +1,6 @@
 package com.grinch.rivo4.view.screen.settings
 
+import com.grinch.rivo4.controller.util.RivoText
 import android.accounts.Account
 import android.view.HapticFeedbackConstants
 import androidx.compose.animation.*
@@ -50,11 +51,20 @@ import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinActivityViewModel
 
-sealed class StorageTarget(val id: String, val displayName: String) {
-    object LocalMemory : StorageTarget("local", "Local Memory (Device)")
-    object PrivateStorage : StorageTarget("private", "Private Storage (App Vault)")
-    data class SimCard(val account: Account) : StorageTarget("sim_${account.name}", "SIM Card (${account.name})")
-    data class CloudAccount(val account: Account) : StorageTarget("account_${account.name}_${account.type}", account.name)
+sealed class StorageTarget(val id: String) {
+    abstract val displayName: String
+    object LocalMemory : StorageTarget("local") {
+        override val displayName get() = RivoText.get(com.grinch.rivo4.R.string.ui_local_memory_device_297)
+    }
+    object PrivateStorage : StorageTarget("private") {
+        override val displayName get() = RivoText.get(com.grinch.rivo4.R.string.ui_private_storage_app_vault_298)
+    }
+    data class SimCard(val account: Account) : StorageTarget("sim_${account.name}") {
+        override val displayName get() = RivoText.get(com.grinch.rivo4.R.string.ui_sim_card_299, account.name)
+    }
+    data class CloudAccount(val account: Account) : StorageTarget("account_${account.name}_${account.type}") {
+        override val displayName get() = account.name
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -64,6 +74,7 @@ fun ContactManagementScreen(
     navigator: DestinationsNavigator
 ) {
     val context = LocalContext.current
+    val rivoResources = androidx.compose.ui.platform.LocalResources.current
     val view = LocalView.current
     val scope = rememberCoroutineScope()
     val contactsVM: ContactsViewModel = koinActivityViewModel()
@@ -143,7 +154,7 @@ fun ContactManagementScreen(
                 },
                 actions = {
                     IconButton(onClick = { contactsVM.fetchContacts() }) {
-                        Icon(Icons.Outlined.Refresh, contentDescription = "Refresh")
+                        Icon(Icons.Outlined.Refresh, contentDescription = RivoText.get(com.grinch.rivo4.R.string.ui_refresh_140))
                     }
                 }
             )
@@ -181,7 +192,7 @@ fun ContactManagementScreen(
                                 color = MaterialTheme.colorScheme.primary
                             )
                             Text(
-                                text = "Total Contacts",
+                                text = RivoText.get(com.grinch.rivo4.R.string.ui_total_contacts_301),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -197,14 +208,14 @@ fun ContactManagementScreen(
                         StorageCountChip(
                             modifier = Modifier.weight(1f),
                             icon = Icons.Outlined.PhoneAndroid,
-                            label = "Local",
+                            label = androidx.compose.ui.res.stringResource(com.grinch.rivo4.R.string.contacts_local_label),
                             count = localCount,
                             containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
                         )
                         StorageCountChip(
                             modifier = Modifier.weight(1f),
                             icon = Icons.Outlined.Cloud,
-                            label = "Cloud",
+                            label = androidx.compose.ui.res.stringResource(com.grinch.rivo4.R.string.contacts_cloud_label),
                             count = cloudCount,
                             containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
                         )
@@ -218,7 +229,7 @@ fun ContactManagementScreen(
                         StorageCountChip(
                             modifier = Modifier.weight(1f),
                             icon = Icons.Outlined.Lock,
-                            label = "Private",
+                            label = RivoText.get(com.grinch.rivo4.R.string.ui_private_230),
                             count = privateCount,
                             containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
                         )
@@ -261,7 +272,7 @@ fun ContactManagementScreen(
                                     fontWeight = FontWeight.SemiBold
                                 )
                                 Text(
-                                    text = "All contact names, phone numbers, and emails are unique.",
+                                    text = RivoText.get(com.grinch.rivo4.R.string.ui_all_contact_names_phone_numbers_and_emails_are_unique_302),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -284,7 +295,7 @@ fun ContactManagementScreen(
                                     color = MaterialTheme.colorScheme.error
                                 )
                                 Text(
-                                    text = "Combine redundant details and keep clean contacts.",
+                                    text = RivoText.get(com.grinch.rivo4.R.string.ui_combine_redundant_details_and_keep_clean_contacts_303),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -316,7 +327,7 @@ fun ContactManagementScreen(
                                     val sources = group.drop(1).map { it.id }
                                     contactsVM.mergeDuplicateGroup(primary.id, sources)
                                     scope.launch {
-                                        snackbarHostState.showSnackbar("Merged contacts for ${primary.name}")
+                                        snackbarHostState.showSnackbar(RivoText.get(com.grinch.rivo4.R.string.ui_merged_contacts_for_304, (primary.name).toString()))
                                     }
                                 },
                                 onDismiss = {
@@ -386,12 +397,12 @@ fun ContactManagementScreen(
                                 ) {
                                     Icon(
                                         Icons.Default.SwapVert,
-                                        contentDescription = "Swap Source & Destination",
+                                        contentDescription = RivoText.get(com.grinch.rivo4.R.string.ui_swap_source_destination_305),
                                         modifier = Modifier.size(16.dp)
                                     )
                                     Spacer(Modifier.width(4.dp))
                                     Text(
-                                        text = "Swap",
+                                        text = RivoText.get(com.grinch.rivo4.R.string.ui_swap_306),
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.Bold
                                     )
@@ -459,7 +470,7 @@ fun ContactManagementScreen(
                                 )
                                 Spacer(Modifier.width(10.dp))
                                 Text(
-                                    text = "${sourceContacts.size} contacts ready to move to ${selectedDestStorage.displayName}",
+                                    text = RivoText.get(com.grinch.rivo4.R.string.ui_contacts_ready_to_move_to_307, (sourceContacts.size).toString(), (selectedDestStorage.displayName).toString()),
                                     style = MaterialTheme.typography.bodySmall,
                                     fontWeight = FontWeight.Medium,
                                     color = MaterialTheme.colorScheme.onSurface
@@ -477,9 +488,9 @@ fun ContactManagementScreen(
                         OutlinedButton(
                             onClick = {
                                 if (selectedSourceStorage == selectedDestStorage) {
-                                    scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.contact_management_same_source_dest)) }
+                                    scope.launch { snackbarHostState.showSnackbar(rivoResources.getString(R.string.contact_management_same_source_dest)) }
                                 } else if (sourceContacts.isEmpty()) {
-                                    scope.launch { snackbarHostState.showSnackbar("No contacts found in ${selectedSourceStorage.displayName}") }
+                                    scope.launch { snackbarHostState.showSnackbar(RivoText.get(com.grinch.rivo4.R.string.ui_no_contacts_found_in_308, (selectedSourceStorage.displayName).toString())) }
                                 } else {
                                     showMoveSelectionDialog = true
                                 }
@@ -496,9 +507,9 @@ fun ContactManagementScreen(
                         Button(
                             onClick = {
                                 if (selectedSourceStorage == selectedDestStorage) {
-                                    scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.contact_management_same_source_dest)) }
+                                    scope.launch { snackbarHostState.showSnackbar(rivoResources.getString(R.string.contact_management_same_source_dest)) }
                                 } else if (sourceContacts.isEmpty()) {
-                                    scope.launch { snackbarHostState.showSnackbar("No contacts found in ${selectedSourceStorage.displayName}") }
+                                    scope.launch { snackbarHostState.showSnackbar(RivoText.get(com.grinch.rivo4.R.string.ui_no_contacts_found_in_308, (selectedSourceStorage.displayName).toString())) }
                                 } else {
                                     showMoveAllConfirmDialog = true
                                 }
@@ -545,8 +556,8 @@ fun ContactManagementScreen(
                     )
 
                     RivoListItem(
-                        headline = "Private Storage Vault",
-                        supporting = "Manage secret local contacts stored strictly in app database",
+                        headline = RivoText.get(com.grinch.rivo4.R.string.ui_private_storage_vault_309),
+                        supporting = RivoText.get(com.grinch.rivo4.R.string.ui_manage_secret_local_contacts_stored_strictly_in_app_database_310),
                         leadingIcon = Icons.Outlined.Lock,
                         onClick = { navigator.navigate(PrivateContactsScreenDestination) }
                     )
@@ -569,7 +580,7 @@ fun ContactManagementScreen(
                         showMergeAllDialog = false
                         contactsVM.mergeAllDuplicates()
                         scope.launch {
-                            snackbarHostState.showSnackbar(context.getString(R.string.contact_management_merge_success, duplicateGroups.size))
+                            snackbarHostState.showSnackbar(rivoResources.getString(R.string.contact_management_merge_success, duplicateGroups.size))
                         }
                     },
                     shape = RoundedCornerShape(16.dp)
@@ -614,7 +625,7 @@ fun ContactManagementScreen(
                         ) {
                             scope.launch {
                                 snackbarHostState.showSnackbar(
-                                    context.getString(
+                                    rivoResources.getString(
                                         R.string.contact_management_move_success,
                                         sourceContacts.size,
                                         selectedDestStorage.displayName
@@ -625,7 +636,7 @@ fun ContactManagementScreen(
                     },
                     shape = RoundedCornerShape(16.dp)
                 ) {
-                    Text("Move All")
+                    Text(RivoText.get(com.grinch.rivo4.R.string.ui_move_all_311))
                 }
             },
             dismissButton = {
@@ -659,7 +670,7 @@ fun ContactManagementScreen(
                         showStandardizeConfirm = false
                         contactsVM.formatAllPhoneNumbers()
                         scope.launch {
-                            snackbarHostState.showSnackbar(context.getString(R.string.settings_manage_standardize_completed))
+                            snackbarHostState.showSnackbar(rivoResources.getString(R.string.settings_manage_standardize_completed))
                         }
                     },
                     shape = RoundedCornerShape(16.dp)
@@ -703,7 +714,7 @@ fun ContactManagementScreen(
                 ) {
                     scope.launch {
                         snackbarHostState.showSnackbar(
-                            context.getString(
+                            rivoResources.getString(
                                 R.string.contact_management_move_success,
                                 selectedIds.size,
                                 selectedDestStorage.displayName
@@ -786,14 +797,14 @@ fun DuplicateGroupItem(
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
-                        text = "${group.size} matching contacts • ${primary.phoneNumbers.firstOrNull() ?: ""}",
+                        text = stringResource(R.string.contacts_matching, group.size, primary.phoneNumbers.firstOrNull() ?: ""),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = onDismiss, modifier = Modifier.size(32.dp)) {
-                        Icon(Icons.Default.Close, contentDescription = "Dismiss", modifier = Modifier.size(18.dp))
+                        Icon(Icons.Default.Close, contentDescription = RivoText.get(com.grinch.rivo4.R.string.ui_dismiss_183), modifier = Modifier.size(18.dp))
                     }
                     FilledTonalButton(
                         onClick = onMerge,
@@ -810,7 +821,7 @@ fun DuplicateGroupItem(
                 Column(modifier = Modifier.padding(top = 10.dp, start = 8.dp, end = 8.dp)) {
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                     Text(
-                        text = "Contacts to be combined:",
+                        text = RivoText.get(com.grinch.rivo4.R.string.ui_contacts_to_be_combined_314),
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
@@ -824,7 +835,7 @@ fun DuplicateGroupItem(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = if (idx == 0) "Primary" else "Duplicate #$idx",
+                                text = if (idx == 0) RivoText.get(com.grinch.rivo4.R.string.ui_primary_315) else RivoText.get(com.grinch.rivo4.R.string.ui_duplicate_316, (idx).toString()),
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = if (idx == 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -833,7 +844,7 @@ fun DuplicateGroupItem(
                             Column {
                                 Text(c.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
                                 Text(
-                                    text = c.phoneNumbers.joinToString(", ").ifEmpty { "No numbers" },
+                                    text = c.phoneNumbers.joinToString(", ").ifEmpty { RivoText.get(com.grinch.rivo4.R.string.ui_no_numbers_317) },
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -924,7 +935,7 @@ fun StorageTargetCard(
                             )
                         }
                         Text(
-                            text = "$badgeCount contacts",
+                            text = RivoText.get(com.grinch.rivo4.R.string.ui_contacts_318, (badgeCount).toString()),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -952,7 +963,7 @@ fun StorageTargetCard(
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             Icons.Default.ArrowDropDown,
-                            contentDescription = "Select Storage",
+                            contentDescription = RivoText.get(com.grinch.rivo4.R.string.ui_select_storage_319),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(20.dp)
                         )
@@ -1025,18 +1036,18 @@ fun MoveContactsSelectionDialog(
                 ) {
                     Column {
                         Text(
-                            text = "Select Contacts to Move",
+                            text = RivoText.get(com.grinch.rivo4.R.string.ui_select_contacts_to_move_320),
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "From $sourceStorageName to $destStorageName",
+                            text = RivoText.get(com.grinch.rivo4.R.string.ui_from_to_321, (sourceStorageName).toString(), (destStorageName).toString()),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, contentDescription = "Close")
+                        Icon(Icons.Default.Close, contentDescription = RivoText.get(com.grinch.rivo4.R.string.ui_close_98))
                     }
                 }
 
@@ -1046,7 +1057,7 @@ fun MoveContactsSelectionDialog(
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
-                    placeholder = { Text("Search contacts") },
+                    placeholder = { Text(RivoText.get(com.grinch.rivo4.R.string.ui_search_contacts_322)) },
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
@@ -1061,14 +1072,14 @@ fun MoveContactsSelectionDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "${selectedIds.size} of ${contacts.size} selected",
+                        text = RivoText.get(com.grinch.rivo4.R.string.ui_of_selected_323, (selectedIds.size).toString(), (contacts.size).toString()),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary
                     )
                     TextButton(onClick = {
                         selectedIds = if (selectedIds.size == contacts.size) emptySet() else contacts.map { it.id }.toSet()
                     }) {
-                        Text(if (selectedIds.size == contacts.size) "Deselect All" else "Select All")
+                        Text(if (selectedIds.size == contacts.size) RivoText.get(com.grinch.rivo4.R.string.ui_deselect_all_324) else RivoText.get(com.grinch.rivo4.R.string.ui_select_all_325))
                     }
                 }
 
@@ -1104,7 +1115,7 @@ fun MoveContactsSelectionDialog(
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(contact.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                                 Text(
-                                    contact.phoneNumbers.firstOrNull()?.let { formatPhoneNumber(it) } ?: "No number",
+                                    contact.phoneNumbers.firstOrNull()?.let { formatPhoneNumber(it) } ?: RivoText.get(com.grinch.rivo4.R.string.ui_no_number_326),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -1128,7 +1139,7 @@ fun MoveContactsSelectionDialog(
                         enabled = selectedIds.isNotEmpty(),
                         shape = RoundedCornerShape(16.dp)
                     ) {
-                        Text("Move (${selectedIds.size})")
+                        Text(RivoText.get(com.grinch.rivo4.R.string.ui_move_327, (selectedIds.size).toString()))
                     }
                 }
             }

@@ -27,6 +27,8 @@ concurrency:
 
 jobs:
   synchronize:
+    # This service belongs to upstream and requires its private credentials.
+    if: github.repository == 'user-grinch/RivoPhoneApp'
     runs-on: ubuntu-latest
 
     steps:

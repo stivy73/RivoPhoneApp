@@ -1,3 +1,11 @@
+/*
+ * Derived from ShizuCallRecorder 1.3.3, dd940fe2caa8aa1b4c7143ad5123c9923b343abd.
+ * Copyright (C) 2026-present kitsumed (Med)
+ * GPLv3-or-later with Section 7 terms; assets/licenses/ShizuCallRecorder.txt.
+ * Modified 2026-09-14 for Rivo Personal: recording-only binding, cancellable cleanup,
+ * live permission checks, no server auto-management or app-op/role commands.
+ * WITHOUT ANY WARRANTY.
+ */
 package com.grinch.rivo4.controller.shizuku
 
 import android.content.ComponentName
@@ -5,144 +13,85 @@ import android.content.Context
 import android.content.ServiceConnection
 import android.content.pm.PackageManager
 import android.os.IBinder
+import com.grinch.rivo4.BuildConfig
 import com.grinch.rivo4.IShellService
+import com.grinch.rivo4.controller.recording.*
 import kotlinx.coroutines.suspendCancellableCoroutine
 import rikka.shizuku.Shizuku
 import rikka.shizuku.ShizukuProvider
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
-class ShizukuConnectionManager(
-    private val context: Context,
-    private val onBinderDied: () -> Unit = {}
-) {
-
+class ShizukuConnectionManager(private val context: Context, private val onBinderDied: () -> Unit = {}) {
     companion object {
         const val PERMISSION_REQUEST_CODE = 204846
-
-        fun isAvailable(): Boolean {
-            return try {
-                Shizuku.pingBinder()
-            } catch (e: Exception) {
-                false
-            }
-        }
-
-        fun hasPermission(context: Context? = null): Boolean {
-            return try {
-                if (isAvailable()) {
-                    Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED
-                } else if (context != null) {
-                    context.checkSelfPermission(ShizukuProvider.PERMISSION) == PackageManager.PERMISSION_GRANTED
-                } else {
-                    false
-                }
-            } catch (e: Exception) {
-                false
-            }
-        }
-
+        fun isAvailable() = runCatching { Shizuku.pingBinder() }.getOrDefault(false)
+        fun hasPermission(context: Context? = null) = runCatching {
+            isAvailable() && Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED
+        }.getOrDefault(false)
+        fun getPackageName(context: Context): String? = runCatching {
+            context.packageManager.getPermissionInfo(ShizukuProvider.PERMISSION, 0).packageName
+        }.getOrNull()
         fun requestPermission() {
-            if (!hasPermission()) {
-                Shizuku.requestPermission(PERMISSION_REQUEST_CODE)
-            }
+            if (isAvailable() && !hasPermission()) Shizuku.requestPermission(PERMISSION_REQUEST_CODE)
         }
     }
-
-    private val userServiceArgs: Shizuku.UserServiceArgs by lazy {
-        val version = try {
-            context.packageManager.getPackageInfo(context.packageName, 0).longVersionCode.toInt()
-        } catch (e: Exception) {
-            1
-        }
-
+    private val args by lazy {
         Shizuku.UserServiceArgs(ComponentName(context.packageName, ShellService::class.java.name))
-            .daemon(false)
-            .processNameSuffix("ElevatedShellService")
-            .debuggable(true)
-            .version(version)
+            .daemon(false).processNameSuffix("ElevatedShellService").debuggable(BuildConfig.DEBUG)
+            .version(context.packageManager.getPackageInfo(context.packageName, 0).longVersionCode.toInt())
     }
-
-    private var serviceConnection: ServiceConnection? = null
+    private var connection: ServiceConnection? = null
+    private var boundBinder: IBinder? = null
+    private val death = IBinder.DeathRecipient { onBinderDied() }
+    private val serverDeath = Shizuku.OnBinderDeadListener { onBinderDied() }
+    @Volatile private var closed = false
 
     suspend fun getShellService(): IShellService = suspendCancellableCoroutine { continuation ->
-        if (!isAvailable()) {
-            continuation.resumeWithException(IllegalStateException("Shizuku is not running"))
+        if (!isAvailable() || !hasPermission()) {
+            continuation.resumeWithException(RecordingFailure(if (!isAvailable()) RecordingError.SHIZUKU_STOPPED else RecordingError.PERMISSION))
             return@suspendCancellableCoroutine
         }
-
-        val connection = object : ServiceConnection {
+        val conn = object : ServiceConnection {
             override fun onServiceConnected(name: ComponentName, binder: IBinder?) {
-                if (binder != null) {
-                    val proxy = IShellService.Stub.asInterface(binder)
-                    if (continuation.isActive) {
-                        continuation.resume(proxy)
-                    }
-                } else {
-                    val e = IllegalStateException("Shizuku returned null binder")
-                    if (continuation.isActive) {
-                        continuation.resumeWithException(e)
+                synchronized(this@ShizukuConnectionManager) {
+                    if (closed || !continuation.isActive) return
+                    if (binder == null) {
+                        continuation.resumeWithException(RecordingFailure(RecordingError.SERVER))
+                    } else {
+                        try {
+                            boundBinder = binder
+                            binder.linkToDeath(death, 0)
+                            AppLogger.i("Shizuku shell connected")
+                            continuation.resume(IShellService.Stub.asInterface(binder))
+                        } catch (_: Exception) {
+                            continuation.resumeWithException(RecordingFailure(RecordingError.SHIZUKU_STOPPED))
+                        }
                     }
                 }
             }
-
             override fun onServiceDisconnected(name: ComponentName?) {
-                unbind()
-                if (continuation.isActive) {
-                    continuation.resumeWithException(IllegalStateException("Shizuku service disconnected"))
-                } else {
-                    onBinderDied()
-                }
+                if (!closed) onBinderDied()
             }
         }
-
-        this.serviceConnection = connection
-
-        fun bindServiceInternal() {
-            try {
-                Shizuku.bindUserService(userServiceArgs, connection)
-            } catch (e: Exception) {
-                if (continuation.isActive) {
-                    continuation.resumeWithException(e)
-                }
+        synchronized(this) {
+            connection = conn
+            Shizuku.addBinderDeadListener(serverDeath)
+            try { Shizuku.bindUserService(args, conn) }
+            catch (_: Exception) {
+                continuation.resumeWithException(RecordingFailure(RecordingError.SERVER))
             }
         }
-
-        val permissionListener = object : Shizuku.OnRequestPermissionResultListener {
-            override fun onRequestPermissionResult(requestCode: Int, grantResult: Int) {
-                if (requestCode == PERMISSION_REQUEST_CODE) {
-                    Shizuku.removeRequestPermissionResultListener(this)
-                    if (grantResult == PackageManager.PERMISSION_GRANTED) {
-                        bindServiceInternal()
-                    } else if (continuation.isActive) {
-                        continuation.resumeWithException(SecurityException("Shizuku permission denied"))
-                    }
-                }
-            }
-        }
-
-        if (hasPermission()) {
-            bindServiceInternal()
-        } else {
-            Shizuku.addRequestPermissionResultListener(permissionListener)
-            Shizuku.requestPermission(PERMISSION_REQUEST_CODE)
-        }
-
-        continuation.invokeOnCancellation {
-            Shizuku.removeRequestPermissionResultListener(permissionListener)
-        }
+        continuation.invokeOnCancellation { unbind() }
     }
-
-    fun unbind() {
-        val serviceConn = serviceConnection
-        if (serviceConn != null) {
-            try {
-                if (isAvailable()) {
-                    Shizuku.unbindUserService(userServiceArgs, serviceConn, false)
-                }
-            } catch (e: Exception) {
-            }
-        }
-        serviceConnection = null
+    @Synchronized fun unbind() {
+        if (closed) return
+        closed = true
+        runCatching { boundBinder?.unlinkToDeath(death, 0) }
+        Shizuku.removeBinderDeadListener(serverDeath)
+        connection?.let { conn -> runCatching { boundedRemoteCall(2_000) { Shizuku.unbindUserService(args, conn, true) } } }
+        connection = null
+        boundBinder = null
+        AppLogger.i("Shizuku shell released")
     }
 }

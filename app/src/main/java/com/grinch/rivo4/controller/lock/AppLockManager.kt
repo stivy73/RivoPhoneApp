@@ -1,5 +1,6 @@
 package com.grinch.rivo4.controller.lock
 
+import com.grinch.rivo4.controller.util.RivoText
 import android.content.Context
 import android.os.Build
 import android.util.Log
@@ -72,8 +73,8 @@ object AppLockManager {
 
     fun authenticate(
         activity: FragmentActivity,
-        title: String = "Unlock Rivo Phone",
-        subtitle: String = "Use your Face, Fingerprint, PIN, or Password",
+        title: String = RivoText.get(com.grinch.rivo4.R.string.ui_unlock_rivo_phone_61),
+        subtitle: String = RivoText.get(com.grinch.rivo4.R.string.ui_use_your_face_fingerprint_pin_or_password_62),
         onSuccess: () -> Unit,
         onError: (String) -> Unit = {}
     ) {
@@ -108,7 +109,7 @@ object AppLockManager {
             prompt.authenticate(promptInfo)
         } catch (e: Exception) {
             Log.e(TAG, "BiometricPrompt authentication failed to launch: ${e.message}", e)
-            onError(e.message ?: "Authentication error")
+            onError(e.message ?: RivoText.get(com.grinch.rivo4.R.string.ui_authentication_error_63))
         }
     }
 }

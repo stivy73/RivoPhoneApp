@@ -1,5 +1,6 @@
 package com.grinch.rivo4.view.screen
 
+import com.grinch.rivo4.controller.util.RivoText
 import android.Manifest
 import android.provider.CallLog
 import androidx.activity.compose.BackHandler
@@ -87,6 +88,7 @@ fun RecentScreenContent(
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val rivoResources = androidx.compose.ui.platform.LocalResources.current
     val viewModel: CallLogViewModel = koinActivityViewModel()
 
     var selectedEntries by remember { mutableStateOf(setOf<CallLogEntry>()) }
@@ -135,7 +137,7 @@ fun RecentScreenContent(
             onCopy = if (singleSelected != null) {
                 {
                     clipboardManager.setText(AnnotatedString(singleSelected.number))
-                    Toast.makeText(context, context.getString(R.string.number_copied_toast), Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, rivoResources.getString(R.string.number_copied_toast), Toast.LENGTH_SHORT).show()
                     selectedEntries = emptySet()
                 }
             } else null
@@ -405,6 +407,7 @@ fun CallLogFullContent(
         val logs by viewModel.allCallLogs.collectAsState()
         val todayStats by viewModel.todayStats.collectAsState()
         val allContacts by contactsVM.allContacts.collectAsState()
+        val context = LocalContext.current
 
         val mergeFavorites = remember(settingsState) {
             prefs.getBoolean(com.grinch.rivo4.controller.util.PreferenceManager.KEY_MERGE_FAVORITES_RECENTS, true)
@@ -460,7 +463,7 @@ fun CallLogFullContent(
         LaunchedEffect(selectedFilter, mergeFavorites) {
             isEditingFavorites = false
         }
-        val context = LocalContext.current
+        val rivoResources = androidx.compose.ui.platform.LocalResources.current
         val clipboardManager = LocalClipboardManager.current
         val callLauncher = rememberCallLauncher()
         val messageLauncher = rememberMessageLauncher()
@@ -728,7 +731,7 @@ fun CallLogFullContent(
                                                             SwipeActionType.WHATSAPP -> SocialUtils.openWhatsApp(context, log.number)
                                                             SwipeActionType.COPY_NUMBER -> {
                                                                 clipboardManager.setText(AnnotatedString(log.number))
-                                                                Toast.makeText(context, context.getString(R.string.number_copied_toast), Toast.LENGTH_SHORT).show()
+                                                                Toast.makeText(context, rivoResources.getString(R.string.number_copied_toast), Toast.LENGTH_SHORT).show()
                                                             }
                                                             SwipeActionType.NONE, SwipeActionType.DELETE -> {}
                                                         }
@@ -832,7 +835,7 @@ fun RecentsDailyStatusHeader(
                     )
                     Spacer(Modifier.width(6.dp))
                     Text(
-                        text = "Today's Calls",
+                        text = RivoText.get(com.grinch.rivo4.R.string.ui_today_s_calls_196),
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
@@ -840,7 +843,7 @@ fun RecentsDailyStatusHeader(
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = "Analytics",
+                        text = RivoText.get(com.grinch.rivo4.R.string.ui_analytics_197),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -858,7 +861,7 @@ fun RecentsDailyStatusHeader(
                         ) {
                             Icon(
                                 Icons.Outlined.Close,
-                                contentDescription = "Hide Stats",
+                                contentDescription = RivoText.get(com.grinch.rivo4.R.string.ui_hide_stats_198),
                                 modifier = Modifier.size(16.dp),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -877,7 +880,7 @@ fun RecentsDailyStatusHeader(
                     modifier = Modifier.weight(1f),
                     icon = Icons.Outlined.Phone,
                     value = "$totalCalls",
-                    label = "Calls",
+                    label = androidx.compose.ui.res.stringResource(com.grinch.rivo4.R.string.metrics_calls),
                     containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
                     contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 )
@@ -885,7 +888,7 @@ fun RecentsDailyStatusHeader(
                     modifier = Modifier.weight(1f),
                     icon = Icons.Outlined.PhoneMissed,
                     value = "$missedCalls",
-                    label = "Missed",
+                    label = androidx.compose.ui.res.stringResource(com.grinch.rivo4.R.string.metrics_missed),
                     containerColor = if (missedCalls > 0) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.6f) else MaterialTheme.colorScheme.surfaceContainerHighest,
                     contentColor = if (missedCalls > 0) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -893,7 +896,7 @@ fun RecentsDailyStatusHeader(
                     modifier = Modifier.weight(1.1f),
                     icon = Icons.Outlined.Schedule,
                     value = formatShortDuration(totalDurationSeconds),
-                    label = "Talk Time",
+                    label = androidx.compose.ui.res.stringResource(com.grinch.rivo4.R.string.metrics_talk_time),
                     containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.6f),
                     contentColor = MaterialTheme.colorScheme.onTertiaryContainer
                 )

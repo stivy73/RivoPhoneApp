@@ -1,5 +1,6 @@
 package com.grinch.rivo4.view.screen.settings
 
+import com.grinch.rivo4.controller.util.RivoText
 import android.text.format.DateFormat
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
@@ -122,6 +123,7 @@ fun FakeCallSchedulerScreen(
     navigator: DestinationsNavigator
 ) {
     val context = LocalContext.current
+    val rivoResources = androidx.compose.ui.platform.LocalResources.current
     val prefs = koinInject<PreferenceManager>()
     val contactsVM: ContactsViewModel = koinActivityViewModel()
     val allContacts by contactsVM.allContacts.collectAsState()
@@ -140,7 +142,7 @@ fun FakeCallSchedulerScreen(
     var showTimePicker by remember { mutableStateOf(false) }
 
     // State for creating new fake call
-    var newCallerName by remember { mutableStateOf("Mom") }
+    var newCallerName by remember { mutableStateOf(RivoText.get(com.grinch.rivo4.R.string.ui_mom_232)) }
     var newPhoneNumber by remember { mutableStateOf("+1 (555) 019-2834") }
     var newPhotoUri by remember { mutableStateOf<String?>(null) }
     var newVibrate by remember { mutableStateOf(FakeCallManager.shouldVibrateOnRing(context)) }
@@ -150,7 +152,7 @@ fun FakeCallSchedulerScreen(
     }
 
     fun resetNewScheduleForm() {
-        newCallerName = "Mom"
+        newCallerName = RivoText.get(com.grinch.rivo4.R.string.ui_mom_232)
         newPhoneNumber = "+1 (555) 019-2834"
         newPhotoUri = null
         newVibrate = FakeCallManager.shouldVibrateOnRing(context)
@@ -207,7 +209,7 @@ fun FakeCallSchedulerScreen(
                         IconButton(
                             onClick = {
                                 val schedule = FakeCallSchedule(
-                                    callerName = newCallerName.trim().ifEmpty { "Mom" },
+                                    callerName = newCallerName.trim().ifEmpty { RivoText.get(com.grinch.rivo4.R.string.ui_mom_232) },
                                     phoneNumber = newPhoneNumber.trim().ifEmpty { "+1 (555) 019-2834" },
                                     photoUri = newPhotoUri,
                                     triggerTimestampMillis = targetTimestamp,
@@ -219,11 +221,11 @@ fun FakeCallSchedulerScreen(
                                     val timeText = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(targetTimestamp))
                                     scope.launch {
                                         snackbarHostState.showSnackbar(
-                                            context.getString(R.string.fake_call_success_scheduled, timeText)
+                                            rivoResources.getString(R.string.fake_call_success_scheduled, timeText)
                                         )
                                     }
                                 } else {
-                                    Toast.makeText(context, "Could not schedule alarm. Check exact alarm permission.", Toast.LENGTH_LONG).show()
+                                    Toast.makeText(context, RivoText.get(com.grinch.rivo4.R.string.ui_could_not_schedule_alarm_check_exact_alarm_permission_233), Toast.LENGTH_LONG).show()
                                 }
                             }
                         ) {
@@ -237,7 +239,7 @@ fun FakeCallSchedulerScreen(
                         IconButton(
                             onClick = {
                                 val defaultSchedule = FakeCallSchedule(
-                                    callerName = "Mom",
+                                    callerName = RivoText.get(com.grinch.rivo4.R.string.ui_mom_232),
                                     phoneNumber = "+1 (555) 019-2834",
                                     triggerTimestampMillis = System.currentTimeMillis(),
                                     vibrate = FakeCallManager.shouldVibrateOnRing(context)
@@ -363,10 +365,10 @@ fun FakeCallSchedulerScreen(
                         title = stringResource(R.string.fake_call_schedule_time),
                         icon = Icons.Outlined.Schedule
                     ) {
-                        val dateStr = SimpleDateFormat("EEEE, MMMM d, yyyy", Locale.getDefault()).format(Date(targetTimestamp))
+                        val dateStr = SimpleDateFormat("EEEE, MMMM d, yyyy", androidx.compose.ui.platform.LocalConfiguration.current.locales[0]).format(Date(targetTimestamp))
                         val is24 = DateFormat.is24HourFormat(context)
                         val timeFormatPattern = if (is24) "HH:mm" else "hh:mm a"
-                        val timeStr = SimpleDateFormat(timeFormatPattern, Locale.getDefault()).format(Date(targetTimestamp))
+                        val timeStr = SimpleDateFormat(timeFormatPattern, androidx.compose.ui.platform.LocalConfiguration.current.locales[0]).format(Date(targetTimestamp))
 
                         RivoListItem(
                             headline = dateStr,
@@ -411,7 +413,7 @@ fun FakeCallSchedulerScreen(
                         Button(
                             onClick = {
                                 val schedule = FakeCallSchedule(
-                                    callerName = newCallerName.trim().ifEmpty { "Mom" },
+                                    callerName = newCallerName.trim().ifEmpty { RivoText.get(com.grinch.rivo4.R.string.ui_mom_232) },
                                     phoneNumber = newPhoneNumber.trim().ifEmpty { "+1 (555) 019-2834" },
                                     photoUri = newPhotoUri,
                                     triggerTimestampMillis = targetTimestamp,
@@ -423,11 +425,11 @@ fun FakeCallSchedulerScreen(
                                     val timeText = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(targetTimestamp))
                                     scope.launch {
                                         snackbarHostState.showSnackbar(
-                                            context.getString(R.string.fake_call_success_scheduled, timeText)
+                                            rivoResources.getString(R.string.fake_call_success_scheduled, timeText)
                                         )
                                     }
                                 } else {
-                                    Toast.makeText(context, "Could not schedule alarm. Check exact alarm permission.", Toast.LENGTH_LONG).show()
+                                    Toast.makeText(context, RivoText.get(com.grinch.rivo4.R.string.ui_could_not_schedule_alarm_check_exact_alarm_permission_233), Toast.LENGTH_LONG).show()
                                 }
                             },
                             shape = RoundedCornerShape(18.dp),
@@ -447,7 +449,7 @@ fun FakeCallSchedulerScreen(
                         FilledTonalButton(
                             onClick = {
                                 val instant = FakeCallSchedule(
-                                    callerName = newCallerName.trim().ifEmpty { "Mom" },
+                                    callerName = newCallerName.trim().ifEmpty { RivoText.get(com.grinch.rivo4.R.string.ui_mom_232) },
                                     phoneNumber = newPhoneNumber.trim().ifEmpty { "+1 (555) 019-2834" },
                                     photoUri = newPhotoUri,
                                     triggerTimestampMillis = System.currentTimeMillis(),
@@ -536,7 +538,7 @@ fun FakeCallSchedulerScreen(
                         FilledTonalButton(
                             onClick = {
                                 val instant = FakeCallSchedule(
-                                    callerName = "Mom",
+                                    callerName = RivoText.get(com.grinch.rivo4.R.string.ui_mom_232),
                                     phoneNumber = "+1 (555) 019-2834",
                                     triggerTimestampMillis = System.currentTimeMillis(),
                                     vibrate = FakeCallManager.shouldVibrateOnRing(context)
@@ -564,12 +566,12 @@ fun FakeCallSchedulerScreen(
                 // Next upcoming hero banner
                 item {
                     RivoExpressiveCard(
-                        title = "Call History Settings",
+                        title = RivoText.get(com.grinch.rivo4.R.string.ui_call_history_settings_234),
                         icon = Icons.Outlined.History
                     ) {
                         RivoSwitchListItem(
-                            headline = "Save to Call History",
-                            supporting = "Answered and missed fake calls will show up in Recents",
+                            headline = RivoText.get(com.grinch.rivo4.R.string.ui_save_to_call_history_235),
+                            supporting = RivoText.get(com.grinch.rivo4.R.string.ui_answered_and_missed_fake_calls_will_show_up_in_recents_236),
                             leadingIcon = Icons.Outlined.History,
                             checked = logFakeCalls,
                             onCheckedChange = {
@@ -701,7 +703,7 @@ fun FakeCallSchedulerScreen(
                                         onClick = {
                                             FakeCallManager.removeSchedule(context, nextSchedule.id)
                                             scope.launch {
-                                                snackbarHostState.showSnackbar(context.getString(R.string.fake_call_deleted))
+                                                snackbarHostState.showSnackbar(rivoResources.getString(R.string.fake_call_deleted))
                                             }
                                         },
                                         shape = RoundedCornerShape(12.dp)
@@ -762,7 +764,7 @@ fun FakeCallSchedulerScreen(
                     val mins = remainingSeconds / 60
                     val secs = remainingSeconds % 60
                     val countdownStr = if (mins > 0) "${mins}m ${secs}s" else "${secs}s"
-                    val formattedDate = SimpleDateFormat("EEE, d MMM • HH:mm", Locale.getDefault()).format(Date(itemSchedule.triggerTimestampMillis))
+                    val formattedDate = SimpleDateFormat("EEE, d MMM • HH:mm", androidx.compose.ui.platform.LocalConfiguration.current.locales[0]).format(Date(itemSchedule.triggerTimestampMillis))
 
                     OutlinedCard(
                         modifier = Modifier.fillMaxWidth(),
@@ -856,7 +858,7 @@ fun FakeCallSchedulerScreen(
                                     onClick = {
                                         FakeCallManager.removeSchedule(context, itemSchedule.id)
                                         scope.launch {
-                                            snackbarHostState.showSnackbar(context.getString(R.string.fake_call_deleted))
+                                            snackbarHostState.showSnackbar(rivoResources.getString(R.string.fake_call_deleted))
                                         }
                                     },
                                     modifier = Modifier.size(38.dp)
@@ -1001,7 +1003,7 @@ fun FakeCallSchedulerScreen(
                     FakeCallManager.clearAllSchedules(context)
                     showClearAllConfirm = false
                     scope.launch {
-                        snackbarHostState.showSnackbar(context.getString(R.string.fake_call_cancelled))
+                        snackbarHostState.showSnackbar(rivoResources.getString(R.string.fake_call_cancelled))
                     }
                 }
             ),

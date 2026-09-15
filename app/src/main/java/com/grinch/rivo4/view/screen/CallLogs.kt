@@ -27,7 +27,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.grinch.rivo4.R
+import com.grinch.rivo4.controller.CallRecorder
 import com.grinch.rivo4.controller.CallLogViewModel
+import com.grinch.rivo4.controller.recording.RecordingFileMatcher
 import com.grinch.rivo4.controller.util.formatDateHeader
 import com.grinch.rivo4.controller.util.makeCall
 import com.grinch.rivo4.controller.util.formatPhoneNumber
@@ -41,6 +43,7 @@ import com.grinch.rivo4.modal.data.displayLabel
 import com.grinch.rivo4.view.components.*
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
+import com.ramcosta.composedestinations.generated.destinations.CallRecordingsScreenDestination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -65,6 +68,13 @@ fun CallLogFullScreen(
     val isLoading by viewModel.isLoading.collectAsState()
     val selectedFilter by viewModel.selectedFilter.collectAsState()
     val context = LocalContext.current
+    val recordingsRevision by CallRecorder.recordingsChanged.collectAsState()
+    var allRecordings by remember { mutableStateOf(emptyList<java.io.File>()) }
+    LaunchedEffect(recordingsRevision) {
+        allRecordings = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            CallRecorder.listRecordings(context)
+        }
+    }
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     
@@ -92,6 +102,17 @@ fun CallLogFullScreen(
         else allLogs.filter { log ->
             (contactId != null && contactId != "null" && log.contactId == contactId) || 
             (phoneNumber != null && log.number.replace(" ", "").contains(phoneNumber.replace(" ", "")))
+        }
+    }
+    val recordingsByCallId = remember(filteredLogsByContact, allRecordings) {
+        filteredLogsByContact.associate { log ->
+            val callerRecordings = RecordingFileMatcher.forContact(
+                recordings = allRecordings,
+                displayName = log.name ?: log.number,
+                phoneNumbers = listOf(log.number)
+            )
+            val callRecordings = RecordingFileMatcher.forCall(callerRecordings, log.date, log.duration)
+            log.id to callRecordings
         }
     }
 
@@ -218,6 +239,18 @@ fun CallLogFullScreen(
                                         logsInGroup.forEachIndexed { index, lg ->
                                             CallLogTileSimple(
                                                 log = lg,
+                                                recordingCount = recordingsByCallId[lg.id]?.size ?: 0,
+                                                onRecordingsClick = {
+                                                    val callerLabel = recordingsByCallId[lg.id]
+                                                        ?.firstOrNull()
+                                                        ?.let(RecordingFileMatcher::callerLabel)
+                                                    navigator.navigate(
+                                                        CallRecordingsScreenDestination(
+                                                            initialShowList = true,
+                                                            initialCallerLabel = callerLabel
+                                                        )
+                                                    )
+                                                },
                                                 onClick = {
                                                     if (selectedEntries.isNotEmpty()) {
                                                         selectedEntries = if (selectedEntries.any { it.id == lg.id }) {

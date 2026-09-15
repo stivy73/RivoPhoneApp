@@ -308,7 +308,7 @@ fun ActiveCallControls(
         ) {
             AuxiliaryPillButton(
                 icon = Icons.AutoMirrored.Filled.Notes,
-                label = "Notes",
+                label = androidx.compose.ui.res.stringResource(com.grinch.rivo4.R.string.notes_label),
                 compact = compact,
                 onClick = onNotesClick
             )

@@ -1,5 +1,6 @@
 package com.grinch.rivo4.view.screen.settings
 
+import com.grinch.rivo4.controller.util.RivoText
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -85,7 +86,7 @@ fun BottomNavScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Navigation Bar", fontWeight = FontWeight.Bold) },
+                title = { Text(RivoText.get(com.grinch.rivo4.R.string.ui_navigation_bar_284), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = { navigator.navigateUp() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
@@ -104,7 +105,7 @@ fun BottomNavScreen(
         ) {
             // 1. Style & Appearance
             item {
-                RivoExpressiveCard(title = "Style & Appearance") {
+                RivoExpressiveCard(title = RivoText.get(com.grinch.rivo4.R.string.ui_style_appearance_328)) {
                     RivoVisualOptionSelectorRow(
                         headline = stringResource(R.string.settings_interface_nav_bar_style),
                         supporting = stringResource(R.string.settings_interface_nav_bar_style_supporting),
@@ -283,7 +284,7 @@ fun BottomNavScreen(
 
             // 3. Behavior & Defaults
             item {
-                RivoExpressiveCard(title = "Behavior & Defaults") {
+                RivoExpressiveCard(title = RivoText.get(com.grinch.rivo4.R.string.ui_behavior_defaults_329)) {
                     RivoSwitchListItem(
                         headline = stringResource(R.string.settings_interface_icon_only_bar),
                         supporting = stringResource(R.string.settings_interface_icon_only_bar_supporting),
@@ -333,13 +334,13 @@ fun BottomNavScreen(
                     }
                     RivoDivider(Modifier.padding(horizontal = 16.dp))
                     RivoVisualOptionSelectorRow(
-                        headline = "Default Start Screen",
-                        supporting = "Screen to display when opening the app",
+                        headline = RivoText.get(com.grinch.rivo4.R.string.ui_default_start_screen_330),
+                        supporting = RivoText.get(com.grinch.rivo4.R.string.ui_screen_to_display_when_opening_the_app_331),
                         leadingIcon = Icons.Outlined.Home,
                         options = listOf(
-                            "Default Tab" to PreferenceManager.START_LOCATION_NORMAL,
-                            "Dialpad (Recents)" to PreferenceManager.START_LOCATION_DIALPAD_RECENTS,
-                            "Dialpad (Contacts)" to PreferenceManager.START_LOCATION_DIALPAD_CONTACTS
+                            RivoText.get(com.grinch.rivo4.R.string.ui_default_tab_332) to PreferenceManager.START_LOCATION_NORMAL,
+                            RivoText.get(com.grinch.rivo4.R.string.ui_dialpad_recents_333) to PreferenceManager.START_LOCATION_DIALPAD_RECENTS,
+                            RivoText.get(com.grinch.rivo4.R.string.ui_dialpad_contacts_334) to PreferenceManager.START_LOCATION_DIALPAD_CONTACTS
                         ),
                         selectedValue = startLocation,
                         onValueChange = {

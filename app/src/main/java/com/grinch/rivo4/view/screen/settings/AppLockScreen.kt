@@ -1,5 +1,6 @@
 package com.grinch.rivo4.view.screen.settings
 
+import com.grinch.rivo4.controller.util.RivoText
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -101,23 +102,23 @@ fun AppLockScreen(
 
     val timeoutOptions = remember {
         listOf(
-            PreferenceManager.APP_LOCK_TIMEOUT_IMMEDIATELY to "Immediately on exit",
-            PreferenceManager.APP_LOCK_TIMEOUT_1_MIN to "After 1 minute",
-            PreferenceManager.APP_LOCK_TIMEOUT_5_MIN to "After 5 minutes",
-            PreferenceManager.APP_LOCK_TIMEOUT_15_MIN to "After 15 minutes",
-            PreferenceManager.APP_LOCK_TIMEOUT_30_MIN to "After 30 minutes"
+            PreferenceManager.APP_LOCK_TIMEOUT_IMMEDIATELY to RivoText.get(com.grinch.rivo4.R.string.ui_immediately_on_exit_239),
+            PreferenceManager.APP_LOCK_TIMEOUT_1_MIN to RivoText.get(com.grinch.rivo4.R.string.ui_after_1_minute_240),
+            PreferenceManager.APP_LOCK_TIMEOUT_5_MIN to RivoText.get(com.grinch.rivo4.R.string.ui_after_5_minutes_241),
+            PreferenceManager.APP_LOCK_TIMEOUT_15_MIN to RivoText.get(com.grinch.rivo4.R.string.ui_after_15_minutes_242),
+            PreferenceManager.APP_LOCK_TIMEOUT_30_MIN to RivoText.get(com.grinch.rivo4.R.string.ui_after_30_minutes_243)
         )
     }
 
-    val currentTimeoutLabel = timeoutOptions.firstOrNull { it.first == timeout }?.second ?: "Immediately on exit"
+    val currentTimeoutLabel = timeoutOptions.firstOrNull { it.first == timeout }?.second ?: RivoText.get(com.grinch.rivo4.R.string.ui_immediately_on_exit_239)
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("App Lock") },
+                title = { Text(RivoText.get(com.grinch.rivo4.R.string.ui_app_lock_244)) },
                 navigationIcon = {
                     IconButton(onClick = { navigator.navigateUp() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = RivoText.get(com.grinch.rivo4.R.string.ui_back_203))
                     }
                 }
             )
@@ -132,12 +133,12 @@ fun AppLockScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             RivoExpressiveCard(
-                title = "Security & Protection",
+                title = RivoText.get(com.grinch.rivo4.R.string.ui_security_protection_245),
                 icon = Icons.Outlined.Security
             ) {
                 RivoSwitchListItem(
-                    headline = "Enable App Lock",
-                    supporting = "Require authentication to open Rivo Phone",
+                    headline = RivoText.get(com.grinch.rivo4.R.string.ui_enable_app_lock_246),
+                    supporting = RivoText.get(com.grinch.rivo4.R.string.ui_require_authentication_to_open_rivo_phone_247),
                     leadingIcon = Icons.Outlined.Lock,
                     checked = isLockEnabled,
                     onCheckedChange = { enable ->
@@ -145,14 +146,14 @@ fun AppLockScreen(
                             if (activity != null && AppLockManager.canAuthenticate(context)) {
                                 AppLockManager.authenticate(
                                     activity = activity,
-                                    title = "Enable App Lock",
-                                    subtitle = "Authenticate to confirm enabling lock",
+                                    title = RivoText.get(com.grinch.rivo4.R.string.ui_enable_app_lock_246),
+                                    subtitle = RivoText.get(com.grinch.rivo4.R.string.ui_authenticate_to_confirm_enabling_lock_248),
                                     onSuccess = {
                                         prefs.setAppLockEnabled(true)
-                                        Toast.makeText(context, "App lock enabled", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context, RivoText.get(com.grinch.rivo4.R.string.ui_app_lock_enabled_249), Toast.LENGTH_SHORT).show()
                                     },
                                     onError = {
-                                        Toast.makeText(context, "Authentication failed: $it", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context, RivoText.get(com.grinch.rivo4.R.string.ui_authentication_failed_250, (it).toString()), Toast.LENGTH_SHORT).show()
                                     }
                                 )
                             } else {
@@ -162,19 +163,19 @@ fun AppLockScreen(
                             if (activity != null && AppLockManager.canAuthenticate(context)) {
                                 AppLockManager.authenticate(
                                     activity = activity,
-                                    title = "Disable App Lock",
-                                    subtitle = "Authenticate to confirm disabling lock",
+                                    title = RivoText.get(com.grinch.rivo4.R.string.ui_disable_app_lock_251),
+                                    subtitle = RivoText.get(com.grinch.rivo4.R.string.ui_authenticate_to_confirm_disabling_lock_252),
                                     onSuccess = {
                                         prefs.setAppLockEnabled(false)
-                                        Toast.makeText(context, "App lock disabled", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context, RivoText.get(com.grinch.rivo4.R.string.ui_app_lock_disabled_253), Toast.LENGTH_SHORT).show()
                                     },
                                     onError = {
-                                        Toast.makeText(context, "Authentication failed: $it", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context, RivoText.get(com.grinch.rivo4.R.string.ui_authentication_failed_250, (it).toString()), Toast.LENGTH_SHORT).show()
                                     }
                                 )
                             } else {
                                 prefs.setAppLockEnabled(false)
-                                Toast.makeText(context, "App lock disabled", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, RivoText.get(com.grinch.rivo4.R.string.ui_app_lock_disabled_253), Toast.LENGTH_SHORT).show()
                             }
                         }
                     }
@@ -184,8 +185,8 @@ fun AppLockScreen(
                     Column {
                         RivoDivider(Modifier.padding(horizontal = 16.dp))
                         RivoSwitchListItem(
-                            headline = "Biometric Unlock",
-                            supporting = "Use Face, Fingerprint, or Device PIN/Password",
+                            headline = RivoText.get(com.grinch.rivo4.R.string.ui_biometric_unlock_254),
+                            supporting = RivoText.get(com.grinch.rivo4.R.string.ui_use_face_fingerprint_or_device_pin_password_255),
                             leadingIcon = Icons.Outlined.Fingerprint,
                             checked = isBiometricEnabled,
                             onCheckedChange = { prefs.setBiometricLockEnabled(it) }
@@ -193,15 +194,15 @@ fun AppLockScreen(
 
                         RivoDivider(Modifier.padding(horizontal = 16.dp))
                         RivoListItem(
-                            headline = if (hasPin) "Change App PIN" else "Set Custom App PIN",
-                            supporting = if (hasPin) "Custom PIN is configured" else "Optional separate PIN for Rivo Phone",
+                            headline = if (hasPin) RivoText.get(com.grinch.rivo4.R.string.ui_change_app_pin_256) else RivoText.get(com.grinch.rivo4.R.string.ui_set_custom_app_pin_257),
+                            supporting = if (hasPin) RivoText.get(com.grinch.rivo4.R.string.ui_custom_pin_is_configured_258) else RivoText.get(com.grinch.rivo4.R.string.ui_optional_separate_pin_for_rivo_phone_259),
                             leadingIcon = Icons.Outlined.Password,
                             onClick = { showPinDialog = true }
                         )
 
                         RivoDivider(Modifier.padding(horizontal = 16.dp))
                         RivoListItem(
-                            headline = "Lock Timeout",
+                            headline = RivoText.get(com.grinch.rivo4.R.string.ui_lock_timeout_260),
                             supporting = currentTimeoutLabel,
                             leadingIcon = Icons.Default.Timer,
                             onClick = { showTimeoutDialog = true }
@@ -227,7 +228,7 @@ fun AppLockScreen(
                     )
                     Spacer(Modifier.width(12.dp))
                     Text(
-                        text = "Supports Face Unlock, Fingerprint, Device PIN/Pattern/Password, and Custom App PIN.",
+                        text = RivoText.get(com.grinch.rivo4.R.string.ui_supports_face_unlock_fingerprint_device_pin_pattern_password_a_261),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -244,7 +245,7 @@ fun AppLockScreen(
 
         RivoDialog(
             onDismissRequest = { showPinDialog = false },
-            title = if (!isConfirming) "Set 4-Digit App PIN" else "Confirm Your PIN",
+            title = if (!isConfirming) RivoText.get(com.grinch.rivo4.R.string.ui_set_4_digit_app_pin_262) else RivoText.get(com.grinch.rivo4.R.string.ui_confirm_your_pin_263),
             icon = Icons.Default.Pin,
             dismissButton = {
                 TextButton(onClick = { showPinDialog = false }) {
@@ -259,16 +260,16 @@ fun AppLockScreen(
                                 isConfirming = true
                                 errorMessage = ""
                             } else {
-                                errorMessage = "PIN must be 4 digits"
+                                errorMessage = RivoText.get(com.grinch.rivo4.R.string.ui_pin_must_be_4_digits_264)
                             }
                         } else {
                             if (confirmPin == newPin) {
                                 prefs.setAppLockPin(newPin)
                                 prefs.setAppLockEnabled(true)
-                                Toast.makeText(context, "App PIN saved", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, RivoText.get(com.grinch.rivo4.R.string.ui_app_pin_saved_265), Toast.LENGTH_SHORT).show()
                                 showPinDialog = false
                             } else {
-                                errorMessage = "PINs do not match. Try again."
+                                errorMessage = RivoText.get(com.grinch.rivo4.R.string.ui_pins_do_not_match_try_again_266)
                                 confirmPin = ""
                             }
                         }
@@ -276,13 +277,13 @@ fun AppLockScreen(
                     enabled = if (!isConfirming) newPin.length == 4 else confirmPin.length == 4,
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text(if (!isConfirming) "Next" else "Save PIN")
+                    Text(if (!isConfirming) RivoText.get(com.grinch.rivo4.R.string.ui_next_267) else RivoText.get(com.grinch.rivo4.R.string.ui_save_pin_268))
                 }
             }
         ) {
             Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
                 Text(
-                    text = if (!isConfirming) "Enter a 4-digit PIN to lock Rivo Phone" else "Re-enter the 4-digit PIN to confirm",
+                    text = if (!isConfirming) RivoText.get(com.grinch.rivo4.R.string.ui_enter_a_4_digit_pin_to_lock_rivo_phone_269) else RivoText.get(com.grinch.rivo4.R.string.ui_re_enter_the_4_digit_pin_to_confirm_270),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 12.dp)
@@ -315,7 +316,7 @@ fun AppLockScreen(
     if (showTimeoutDialog) {
         RivoSelectionDialog(
             onDismissRequest = { showTimeoutDialog = false },
-            title = "Lock Timeout",
+            title = RivoText.get(com.grinch.rivo4.R.string.ui_lock_timeout_260),
             items = timeoutOptions,
             itemLabel = { it.second },
             onItemSelected = { selected ->
@@ -345,8 +346,8 @@ fun AppLockOverlay(
         if (activity != null && isBiometricEnabled) {
             AppLockManager.authenticate(
                 activity = activity,
-                title = "Unlock Rivo Phone",
-                subtitle = "Use Face, Fingerprint, PIN, or Password",
+                title = RivoText.get(com.grinch.rivo4.R.string.ui_unlock_rivo_phone_61),
+                subtitle = RivoText.get(com.grinch.rivo4.R.string.ui_use_face_fingerprint_pin_or_password_271),
                 onSuccess = {
                     onUnlocked()
                 },
@@ -382,7 +383,7 @@ fun AppLockOverlay(
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         Icons.Default.Lock,
-                        contentDescription = "App Locked",
+                        contentDescription = RivoText.get(com.grinch.rivo4.R.string.ui_app_locked_272),
                         modifier = Modifier.size(40.dp)
                     )
                 }
@@ -391,7 +392,7 @@ fun AppLockOverlay(
             Spacer(Modifier.height(20.dp))
 
             Text(
-                text = "Rivo Phone is Locked",
+                text = RivoText.get(com.grinch.rivo4.R.string.ui_rivo_phone_is_locked_273),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
@@ -400,7 +401,7 @@ fun AppLockOverlay(
             Spacer(Modifier.height(8.dp))
 
             Text(
-                text = if (customPin.isNotEmpty()) "Enter PIN or use biometrics to unlock" else "Authenticate to unlock",
+                text = if (customPin.isNotEmpty()) RivoText.get(com.grinch.rivo4.R.string.ui_enter_pin_or_use_biometrics_to_unlock_274) else RivoText.get(com.grinch.rivo4.R.string.ui_authenticate_to_unlock_275),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -432,7 +433,7 @@ fun AppLockOverlay(
 
                 if (pinError) {
                     Text(
-                        text = "Incorrect PIN",
+                        text = RivoText.get(com.grinch.rivo4.R.string.ui_incorrect_pin_276),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
                         modifier = Modifier.padding(top = 4.dp)
@@ -468,7 +469,7 @@ fun AppLockOverlay(
                                                 Box(contentAlignment = Alignment.Center) {
                                                     Icon(
                                                         Icons.Default.Fingerprint,
-                                                        contentDescription = "Biometrics",
+                                                        contentDescription = RivoText.get(com.grinch.rivo4.R.string.ui_biometrics_278),
                                                         tint = MaterialTheme.colorScheme.primary,
                                                         modifier = Modifier.size(28.dp)
                                                     )
@@ -493,7 +494,7 @@ fun AppLockOverlay(
                                             Box(contentAlignment = Alignment.Center) {
                                                 Icon(
                                                     Icons.AutoMirrored.Filled.Backspace,
-                                                    contentDescription = "Backspace",
+                                                    contentDescription = RivoText.get(com.grinch.rivo4.R.string.ui_backspace_280),
                                                     modifier = Modifier.size(22.dp)
                                                 )
                                             }
@@ -544,7 +545,7 @@ fun AppLockOverlay(
                 ) {
                     Icon(Icons.Default.Fingerprint, contentDescription = null, modifier = Modifier.size(20.dp))
                     Spacer(Modifier.width(8.dp))
-                    Text("Unlock")
+                    Text(RivoText.get(com.grinch.rivo4.R.string.ui_unlock_281))
                 }
             }
         }

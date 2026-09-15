@@ -11,6 +11,7 @@ import androidx.compose.material.icons.automirrored.filled.CallMissed
 import androidx.compose.material.icons.automirrored.filled.CallReceived
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.rounded.Call
+import androidx.compose.material.icons.outlined.LibraryMusic
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -39,6 +40,8 @@ fun CallLogTileSimple(
     onClick: () -> Unit = {},
     onLongClick: () -> Unit = {},
     onCallClick: () -> Unit = {},
+    recordingCount: Int = 0,
+    onRecordingsClick: (() -> Unit)? = null,
     selected: Boolean = false,
     onSwipeAction: ((SwipeActionType, CallLogEntry) -> Unit)? = null
 ) {
@@ -54,6 +57,7 @@ fun CallLogTileSimple(
     val videoLauncher = rememberVideoLauncher()
     val clipboardManager = LocalClipboardManager.current
     val context = LocalContext.current
+    val rivoResources = androidx.compose.ui.platform.LocalResources.current
 
     val icon = when (log.type) {
         CallLog.Calls.INCOMING_TYPE -> Icons.AutoMirrored.Filled.CallReceived
@@ -80,7 +84,7 @@ fun CallLogTileSimple(
                     SwipeActionType.WHATSAPP -> SocialUtils.openWhatsApp(context, log.number)
                     SwipeActionType.COPY_NUMBER -> {
                         clipboardManager.setText(AnnotatedString(log.number))
-                        Toast.makeText(context, context.getString(R.string.number_copied_toast), Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, rivoResources.getString(R.string.number_copied_toast), Toast.LENGTH_SHORT).show()
                     }
                     SwipeActionType.DELETE -> {}
                     SwipeActionType.NONE -> {}
@@ -122,6 +126,25 @@ fun CallLogTileSimple(
                 }
                 
                 if (!selected) {
+                    com.grinch.rivo4.view.screen.settings.CallerActions(log.number)
+                    if (recordingCount > 0 && onRecordingsClick != null) {
+                        IconButton(onClick = onRecordingsClick) {
+                            BadgedBox(
+                                badge = {
+                                    if (recordingCount > 1) {
+                                        Badge { Text(recordingCount.toString()) }
+                                    }
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.LibraryMusic,
+                                    contentDescription = stringResource(R.string.call_recordings_for_call, recordingCount),
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                    }
                     IconButton(
                         onClick = onCallClick,
                         modifier = Modifier.padding(end = 8.dp)
@@ -161,6 +184,7 @@ fun CallLogTile(
     val videoLauncher = rememberVideoLauncher()
     val clipboardManager = LocalClipboardManager.current
     val context = LocalContext.current
+    val rivoResources = androidx.compose.ui.platform.LocalResources.current
 
     val icon = when (log.type) {
         CallLog.Calls.MISSED_TYPE -> Icons.AutoMirrored.Filled.CallMissed
@@ -190,7 +214,7 @@ fun CallLogTile(
                     SwipeActionType.WHATSAPP -> SocialUtils.openWhatsApp(context, log.number)
                     SwipeActionType.COPY_NUMBER -> {
                         clipboardManager.setText(AnnotatedString(log.number))
-                        Toast.makeText(context, context.getString(R.string.number_copied_toast), Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, rivoResources.getString(R.string.number_copied_toast), Toast.LENGTH_SHORT).show()
                     }
                     SwipeActionType.DELETE -> {}
                     SwipeActionType.NONE -> {}
@@ -209,7 +233,9 @@ fun CallLogTile(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(modifier = Modifier.weight(1f)) {
-                    val displayName = remember(log.name, displayOrder) {
+                    val identifiedCaller = com.grinch.rivo4.view.screen.settings.rememberCallerLabel(log.number)
+                    val callerRepository = org.koin.compose.koinInject<com.grinch.rivo4.controller.identification.CallerIdentification>()
+                    val displayName = callerRepository.display(identifiedCaller) ?: remember(log.name, displayOrder) {
                         log.name?.let { 
                             if (it.isNotEmpty()) com.grinch.rivo4.controller.util.ContactUtils.formatContactName(it, displayOrder) else null
                         } ?: formatPhoneNumber(log.number)
@@ -226,6 +252,10 @@ fun CallLogTile(
                             }
                         },
                         supporting2 = buildString {
+                            if (identifiedCaller != null) {
+                                append(callerRepository.source(identifiedCaller))
+                                append(" • ")
+                            }
                             if (showSim && log.simLabel != null) {
                                 append(log.simLabel)
                                 append(" • ")
@@ -245,6 +275,7 @@ fun CallLogTile(
                 }
                 
                 if (!selected) {
+                    com.grinch.rivo4.view.screen.settings.CallerActions(log.number)
                     IconButton(
                         onClick = { onButtonClick(log) },
                         modifier = Modifier.padding(end = 8.dp)

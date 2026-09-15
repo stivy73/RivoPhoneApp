@@ -1,5 +1,6 @@
 package com.grinch.rivo4.controller
 
+import com.grinch.rivo4.controller.util.RivoText
 import android.provider.CallLog
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -12,11 +13,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.util.Calendar
 
-enum class AnalyticsTimeRange(val label: String) {
-    TODAY("Today"),
-    THIS_WEEK("This Week"),
-    THIS_MONTH("This Month"),
-    ALL_TIME("All Time")
+enum class AnalyticsTimeRange(val labelRes: Int) {
+    TODAY(com.grinch.rivo4.R.string.ui_today_380),
+    THIS_WEEK(com.grinch.rivo4.R.string.ui_this_week_12),
+    THIS_MONTH(com.grinch.rivo4.R.string.ui_this_month_13),
+    ALL_TIME(com.grinch.rivo4.R.string.ui_all_time_14);
+    val label: String get() = RivoText.get(labelRes)
 }
 
 data class TopContactStat(
@@ -109,7 +111,7 @@ class CallAnalyticsViewModel(
                 hourly[hour] = (hourly[hour] ?: 0) + callCount
 
                 // SIM usage
-                val sim = entry.simLabel ?: "Primary SIM"
+                val sim = entry.simLabel ?: RivoText.get(com.grinch.rivo4.R.string.ui_primary_sim_15)
                 simMap[sim] = (simMap[sim] ?: 0L) + entry.duration
 
                 // Contact aggregation

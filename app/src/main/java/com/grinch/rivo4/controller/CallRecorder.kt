@@ -4,7 +4,6 @@ import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.media.MediaRecorder
 import android.media.MediaScannerConnection
 import android.net.Uri
 import android.os.Build
@@ -35,44 +34,42 @@ import java.util.Date
 import java.util.Locale
 import java.util.concurrent.atomic.AtomicBoolean
 
+import com.grinch.rivo4.controller.recording.*
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.SharingStarted
+import android.os.SystemClock
+import com.grinch.rivo4.R
+
 object CallRecorder {
-
     private const val TAG = "CallRecorder"
-
-    private val recorderScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    private var startJob: Job? = null
-    private var activeContext: Context? = null
-
-    private val isStarting = AtomicBoolean(false)
-    private val _isRecording = MutableStateFlow(false)
-    val isRecording = _isRecording.asStateFlow()
-
-    private val _durationSeconds = MutableStateFlow(0L)
-    val durationSeconds = _durationSeconds.asStateFlow()
-
-    private var recorder: MediaRecorder? = null
-    private var currentFile: File? = null
-
-    // Shizuku recording pipeline components
-    private var shizukuManager: ShizukuConnectionManager? = null
-    private var shellService: IShellService? = null
-    private var scrcpyClient: ScrcpyClient? = null
-    private var scrcpyMuxer: ScrcpyAudioMuxer? = null
-    private var recordingScope: CoroutineScope? = null
-    private var durationJob: Job? = null
-    private var clientJob: Job? = null
-    private var isUsingShizuku = false
-
     const val DIRECTORY_NAME = "Rivo Recordings"
-
-    private val audioSources = listOf(
-        MediaRecorder.AudioSource.MIC,
-        MediaRecorder.AudioSource.VOICE_COMMUNICATION,
-        MediaRecorder.AudioSource.VOICE_RECOGNITION,
-        MediaRecorder.AudioSource.DEFAULT,
-        MediaRecorder.AudioSource.CAMCORDER,
-        MediaRecorder.AudioSource.VOICE_CALL
-    )
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val coordinator = RecordingCoordinator(scope, SystemClock::elapsedRealtime,
+        onTransition = { android.util.Log.i(TAG, "Session ${it.sessionId}: ${it.phase} error=${it.error}") })
+    val state = coordinator.state
+    val isRecording = state.map { it.phase == RecordingPhase.RECORDING }
+        .stateIn(scope, SharingStarted.Eagerly, false)
+    val durationSeconds = state.map { it.durationSeconds }.stateIn(scope, SharingStarted.Eagerly, 0L)
+    private val savedRevision = MutableStateFlow(0L)
+    val recordingsChanged = savedRevision.asStateFlow()
+    fun recordingSaved() { savedRevision.value += 1 }
+    fun start(context: Context, label: String) {
+        coordinator.start { AudioRecordingEngine(context.applicationContext, label) }
+    }
+    fun stop() { coordinator.stop() }
+    fun stopSession(sessionId: Long) {
+        if (state.value.sessionId == sessionId && state.value.busy) coordinator.stop()
+    }
+    fun mimeType(file: File): String = when (file.extension.lowercase(Locale.ROOT)) {
+        "ogg", "opus" -> "audio/ogg"
+        "m4a" -> "audio/mp4"
+        "aac" -> "audio/aac"
+        "mp3" -> "audio/mpeg"
+        "3gp" -> "audio/3gpp"
+        "wav" -> "audio/wav"
+        else -> "audio/*"
+    }
 
     fun hasStoragePermission(context: Context): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -100,6 +97,19 @@ object CallRecorder {
     }
 
     fun getRecordingsDirectory(context: Context): File {
+        val folder = context.createDeviceProtectedStorageContext().getSharedPreferences("rivo_prefs", Context.MODE_PRIVATE)
+            .getInt("call_recording_folder", 0)
+        val selected = when (folder) {
+            1 -> context.getExternalFilesDir(Environment.DIRECTORY_RECORDINGS)?.let { File(it, DIRECTORY_NAME) }
+                ?: throw RecordingFailure(RecordingError.STORAGE)
+            2 -> File(context.filesDir, DIRECTORY_NAME)
+            3 -> File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_RECORDINGS), DIRECTORY_NAME)
+            else -> null
+        }
+        if (selected != null) {
+            if (!isWritableDirectory(selected)) throw RecordingFailure(RecordingError.STORAGE)
+            return selected
+        }
         // 1. If All Files Access is granted, allow direct root storage
         if (hasStoragePermission(context)) {
             val directInternal = File(Environment.getExternalStorageDirectory(), DIRECTORY_NAME)
@@ -195,411 +205,8 @@ object CallRecorder {
         return dirs.distinctBy { it.absolutePath }
     }
 
-    fun hasAudioPermission(context: Context): Boolean {
-        return ContextCompat.checkSelfPermission(
-            context,
-            Manifest.permission.RECORD_AUDIO
-        ) == PackageManager.PERMISSION_GRANTED
-    }
-
-    fun start(context: Context, label: String) {
-        if (_isRecording.value || !isStarting.compareAndSet(false, true)) {
-            Log.d(TAG, "Recording start ignored: already running or initializing")
-            return
-        }
-
-        val appContext = context.applicationContext
-        activeContext = appContext
-        startJob?.cancel()
-        startJob = recorderScope.launch {
-            try {
-                startInternal(appContext, label)
-            } finally {
-                isStarting.set(false)
-            }
-        }
-    }
-
-    private suspend fun startInternal(context: Context, label: String): Boolean {
-        if (_isRecording.value) return true
-        activeContext = context
-
-        val safeLabel = label
-            .replace(Regex("[^\\p{L}\\p{N}+_-]"), "_")
-            .take(40)
-            .ifBlank { "call" }
-        val stamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
-        val targetFile = File(getRecordingsDirectory(context), "${safeLabel}_$stamp.m4a")
-
-        // Priority 1: Use Shizuku + scrcpy-server for 2-way call audio capture
-        if (ShizukuConnectionManager.isAvailable() && ShizukuConnectionManager.hasPermission(context)) {
-            val shizukuSuccess = startShizukuRecording(context, targetFile)
-            if (shizukuSuccess) return true
-        }
-
-        // Priority 2: Fallback to standard MediaRecorder
-        return startMediaRecorder(context, targetFile)
-    }
-
-    private suspend fun startShizukuRecording(context: Context, targetFile: File): Boolean {
-        return try {
-            val serverPath = ScrcpyConfig.ensureServerJar(context) ?: run {
-                Log.w(TAG, "scrcpy-server JAR not found or invalid hash")
-                return false
-            }
-
-            val mgr = ShizukuConnectionManager(context.applicationContext)
-            shizukuManager = mgr
-
-            val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-            recordingScope = scope
-
-            val service = withTimeoutOrNull(10000L) {
-                mgr.getShellService()
-            } ?: run {
-                Log.w(TAG, "Timed out waiting for Shizuku shell service")
-                mgr.unbind()
-                return false
-            }
-            shellService = service
-
-            // Attempt voice-call first (captures uplink and downlink)
-            var pipePfd = service.startCapture(
-                "voice-call",
-                "aac",
-                ScrcpyConfig.DEFAULT_AUDIO_BIT_RATE,
-                serverPath,
-                false
-            )
-
-            // Fallback to mic-voice-communication if voice-call is not supported on this HAL
-            if (pipePfd == null) {
-                pipePfd = service.startCapture(
-                    "mic-voice-communication",
-                    "aac",
-                    ScrcpyConfig.DEFAULT_AUDIO_BIT_RATE,
-                    serverPath,
-                    false
-                )
-            }
-
-            val pfd = pipePfd ?: run {
-                Log.e(TAG, "Shell service returned null audio pipe")
-                mgr.unbind()
-                return false
-            }
-
-            val recordFile = try {
-                targetFile.parentFile?.mkdirs()
-                if (!targetFile.exists()) targetFile.createNewFile()
-                targetFile
-            } catch (e: Exception) {
-                File(context.cacheDir, "staging_${targetFile.name}").apply {
-                    createNewFile()
-                }
-            }
-
-            val muxer = ScrcpyAudioMuxer(recordFile)
-            muxer.initialize(ScrcpyAudioCodec.AAC)
-            scrcpyMuxer = muxer
-
-            val client = ScrcpyClient(
-                inputPfd = pfd,
-                expectedCodec = ScrcpyAudioCodec.AAC,
-                listener = object : ScrcpyClient.AudioPacketListener {
-                    override fun onMetadataReceived(codec: ScrcpyAudioCodec) {
-                        muxer.initialize(codec)
-                    }
-
-                    override fun onAudioPacket(packet: ScrcpyClient.AudioPacket) {
-                        muxer.writePacket(packet, ScrcpyAudioCodec.AAC)
-                    }
-
-                    override fun onStreamEnd(error: String?) {
-                        Log.d(TAG, "ScrcpyClient stream ended: $error")
-                    }
-                }
-            )
-            scrcpyClient = client
-
-            clientJob = scope.launch(Dispatchers.IO) {
-                client.start()
-            }
-
-            currentFile = recordFile
-            isUsingShizuku = true
-            _isRecording.value = true
-            CallRecordingService.start(context)
-            startDurationTimer()
-
-            Log.i(TAG, "Shizuku call recording started: ${recordFile.name}")
-            true
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to start Shizuku recording: ${e.message}", e)
-            cleanupShizuku()
-            if (targetFile.exists()) targetFile.delete()
-            false
-        }
-    }
-
-    data class RecordingFormatProfile(
-        val outputFormat: Int,
-        val audioEncoder: Int,
-        val sampleRate: Int,
-        val bitRate: Int,
-        val extension: String
-    )
-
-    private fun getFormatProfiles(targetBitrate: Int): List<RecordingFormatProfile> = listOf(
-        RecordingFormatProfile(
-            outputFormat = MediaRecorder.OutputFormat.MPEG_4,
-            audioEncoder = MediaRecorder.AudioEncoder.AAC,
-            sampleRate = 44100,
-            bitRate = targetBitrate,
-            extension = "m4a"
-        ),
-        RecordingFormatProfile(
-            outputFormat = MediaRecorder.OutputFormat.MPEG_4,
-            audioEncoder = MediaRecorder.AudioEncoder.AAC,
-            sampleRate = 16000,
-            bitRate = targetBitrate.coerceAtMost(64000),
-            extension = "m4a"
-        ),
-        RecordingFormatProfile(
-            outputFormat = MediaRecorder.OutputFormat.THREE_GPP,
-            audioEncoder = MediaRecorder.AudioEncoder.AMR_WB,
-            sampleRate = 16000,
-            bitRate = 23850,
-            extension = "3gp"
-        ),
-        RecordingFormatProfile(
-            outputFormat = MediaRecorder.OutputFormat.THREE_GPP,
-            audioEncoder = MediaRecorder.AudioEncoder.AMR_NB,
-            sampleRate = 8000,
-            bitRate = 12200,
-            extension = "3gp"
-        )
-    )
-
-    private fun startMediaRecorder(context: Context, targetFile: File): Boolean {
-        if (!hasAudioPermission(context)) {
-            Log.w(TAG, "Cannot start MediaRecorder: RECORD_AUDIO permission not granted")
-            return false
-        }
-
-        val prefs = try {
-            val deviceContext = context.createDeviceProtectedStorageContext()
-            deviceContext.getSharedPreferences("rivo_prefs", Context.MODE_PRIVATE)
-        } catch (e: Exception) { null }
-        val targetBitrate = prefs?.getInt("call_recording_bitrate", 128000) ?: 128000
-        val profiles = getFormatProfiles(targetBitrate)
-
-        for (source in audioSources) {
-            for (profile in profiles) {
-                val stagingName = "staging_${targetFile.nameWithoutExtension}.${profile.extension}"
-                val stagingFile = File(context.cacheDir, stagingName)
-                try {
-                    if (stagingFile.exists()) stagingFile.delete()
-                    stagingFile.createNewFile()
-                } catch (e: Exception) {
-                    Log.w(TAG, "Could not prepare staging file: ${e.message}")
-                }
-
-                val instance = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    MediaRecorder(context)
-                } else {
-                    @Suppress("DEPRECATION")
-                    MediaRecorder()
-                }
-                try {
-                    instance.setAudioSource(source)
-                    instance.setOutputFormat(profile.outputFormat)
-                    instance.setAudioEncoder(profile.audioEncoder)
-                    instance.setAudioEncodingBitRate(profile.bitRate)
-                    instance.setAudioSamplingRate(profile.sampleRate)
-                    instance.setOutputFile(stagingFile.absolutePath)
-                    instance.prepare()
-                    instance.start()
-
-                    recorder = instance
-                    currentFile = stagingFile
-                    isUsingShizuku = false
-                    _isRecording.value = true
-                    CallRecordingService.start(context)
-                    startDurationTimer()
-                    Log.i(TAG, "MediaRecorder started: source $source, profile ${profile.extension}")
-                    return true
-                } catch (e: Exception) {
-                    Log.w(TAG, "Source $source with ${profile.extension} failed: ${e.message}")
-                    try { instance.reset() } catch (ignored: Exception) {}
-                    try { instance.release() } catch (ignored: Exception) {}
-                    if (stagingFile.exists()) stagingFile.delete()
-                }
-            }
-        }
-        Log.e(TAG, "All audio sources and format profiles failed for MediaRecorder")
-        return false
-    }
-
-    private fun startDurationTimer() {
-        durationJob?.cancel()
-        _durationSeconds.value = 0L
-        val start = System.currentTimeMillis()
-        durationJob = CoroutineScope(Dispatchers.Default).launch {
-            while (isActive && _isRecording.value) {
-                _durationSeconds.value = (System.currentTimeMillis() - start) / 1000
-                delay(1000)
-            }
-        }
-    }
-
-    fun stop(): File? {
-        startJob?.cancel()
-        startJob = null
-        isStarting.set(false)
-
-        if (!_isRecording.value && recorder == null && scrcpyMuxer == null) {
-            _isRecording.value = false
-            return null
-        }
-
-        val duration = _durationSeconds.value
-        durationJob?.cancel()
-        durationJob = null
-
-        val saved = currentFile
-        val ctx = activeContext
-
-        if (isUsingShizuku) {
-            // Stop order: shell capture -> drain pipe -> close client -> close muxer
-            try {
-                shellService?.stopCapture()
-            } catch (e: Exception) {
-                Log.w(TAG, "Error stopping shell capture: ${e.message}")
-            }
-
-            try {
-                kotlinx.coroutines.runBlocking {
-                    withTimeoutOrNull(2000L) {
-                        clientJob?.join()
-                    }
-                }
-            } catch (e: Exception) {
-                Log.w(TAG, "Error waiting for client job drain: ${e.message}")
-            }
-
-            try {
-                scrcpyClient?.stop()
-                scrcpyClient?.close()
-            } catch (e: Exception) {
-                Log.w(TAG, "Error closing scrcpy client: ${e.message}")
-            }
-
-            try {
-                scrcpyMuxer?.close()
-            } catch (e: Exception) {
-                Log.e(TAG, "Error finalizing muxer: ${e.message}")
-            }
-            cleanupShizuku()
-        } else {
-            val instance = recorder
-            try {
-                if (duration < 1) {
-                    try { Thread.sleep(600) } catch (ignored: Exception) {}
-                }
-                instance?.stop()
-            } catch (e: Exception) {
-                Log.w(TAG, "MediaRecorder.stop() exception: ${e.message}")
-            } finally {
-                try { instance?.reset() } catch (ignored: Exception) {}
-                try { instance?.release() } catch (ignored: Exception) {}
-                recorder = null
-            }
-        }
-
-        _isRecording.value = false
-        currentFile = null
-        isUsingShizuku = false
-        activeContext = null
-
-        if (ctx != null) {
-            CallRecordingService.stop(ctx)
-        }
-
-        if (saved == null || !saved.exists() || saved.length() == 0L) {
-            Log.w(TAG, "Recording file empty or missing, discarding: ${saved?.absolutePath}")
-            saved?.delete()
-            return null
-        }
-
-        if (ctx == null) return saved
-
-        // Check minimum duration filter setting
-        val prefs = try {
-            val deviceContext = ctx.createDeviceProtectedStorageContext()
-            deviceContext.getSharedPreferences("rivo_prefs", Context.MODE_PRIVATE)
-        } catch (e: Exception) { null }
-        val minDuration = prefs?.getInt("call_recording_min_duration", 0) ?: 0
-        if (minDuration > 0 && duration < minDuration) {
-            Log.i(TAG, "Call duration ($duration s) was below filter ($minDuration s), discarding.")
-            saved.delete()
-            return null
-        }
-
-        val cleanName = saved.name.removePrefix("staging_")
-        val destinationDir = getRecordingsDirectory(ctx)
-        val finalTargetFile = File(destinationDir, cleanName)
-
-        // Single move to the target destination
-        val effectiveFile = if (saved.absolutePath != finalTargetFile.absolutePath) {
-            try {
-                destinationDir.mkdirs()
-                saved.copyTo(finalTargetFile, overwrite = true)
-                saved.delete()
-                finalTargetFile
-            } catch (e: Exception) {
-                Log.w(TAG, "Could not move recording to $finalTargetFile: ${e.message}", e)
-                saved // Keep staging file if copy failed
-            }
-        } else {
-            saved
-        }
-
-        // Notify MediaScanner once on the physical output path
-        try {
-            MediaScannerConnection.scanFile(
-                ctx,
-                arrayOf(effectiveFile.absolutePath),
-                arrayOf("audio/*")
-            ) { path, uri ->
-                Log.d(TAG, "Scanned $path: uri=$uri")
-            }
-        } catch (e: Exception) {
-            Log.w(TAG, "MediaScanner error: ${e.message}")
-        }
-
-        recorderScope.launch(Dispatchers.Main) {
-            try {
-                Toast.makeText(ctx, "Call recorded: ${effectiveFile.name}", Toast.LENGTH_SHORT).show()
-            } catch (e: Exception) {}
-        }
-
-        return effectiveFile
-    }
-
-    private fun cleanupShizuku() {
-        scrcpyClient = null
-        scrcpyMuxer = null
-        shellService = null
-        runCatching { shizukuManager?.unbind() }
-        shizukuManager = null
-        runCatching { clientJob?.cancel() }
-        clientJob = null
-        recordingScope = null
-    }
-
     fun listRecordings(context: Context): List<File> {
-        val destinationDir = getRecordingsDirectory(context)
+        val destinationDir = runCatching { getRecordingsDirectory(context) }.getOrElse { File(context.filesDir, DIRECTORY_NAME) }
 
         // 1. Recover any unmigrated staging files from cacheDir
         runCatching {
@@ -612,7 +219,7 @@ object CallRecorder {
                         staging.copyTo(recoveredFile, overwrite = true)
                         staging.delete()
                     } catch (e: Exception) {
-                        Log.w(TAG, "Failed recovering staging file: ${staging.name}", e)
+                        Log.w(TAG, "Failed recovering a legacy staging file")
                     }
                 }
         }
@@ -620,7 +227,7 @@ object CallRecorder {
         // 2. Scan recording directories
         val dirs = getAllRecordingDirectories(context)
         val files = mutableListOf<File>()
-        val supportedExts = listOf(".m4a", ".mp3", ".aac", ".3gp", ".wav")
+        val supportedExts = listOf(".ogg", ".opus", ".m4a", ".mp3", ".aac", ".3gp", ".wav")
         for (dir in dirs) {
             dir.listFiles()
                 ?.filter { file -> file.isFile && file.length() > 0 && supportedExts.any { ext -> file.name.endsWith(ext, ignoreCase = true) } }
@@ -640,7 +247,9 @@ object CallRecorder {
             .sortedByDescending { it.lastModified() }
     }
 
-    fun delete(file: File): Boolean = file.delete()
+    fun delete(file: File): Boolean = file.delete().also { deleted ->
+        if (deleted) savedRevision.value += 1
+    }
 
     fun uriFor(context: Context, file: File): Uri {
         return FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
@@ -648,7 +257,7 @@ object CallRecorder {
 
     fun share(context: Context, file: File, chooserTitle: String) {
         val intent = Intent(Intent.ACTION_SEND).apply {
-            type = "audio/*"
+            type = mimeType(file)
             putExtra(Intent.EXTRA_STREAM, uriFor(context, file))
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }

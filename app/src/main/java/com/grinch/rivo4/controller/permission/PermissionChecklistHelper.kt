@@ -1,5 +1,6 @@
 package com.grinch.rivo4.controller.permission
 
+import com.grinch.rivo4.controller.util.RivoText
 import android.Manifest
 import android.content.Context
 import android.content.Intent
@@ -98,9 +99,7 @@ object PermissionChecklistHelper {
         return pm.isIgnoringBatteryOptimizations(context.packageName)
     }
 
-    fun hasAudioRecordPermission(context: Context): Boolean {
-        return ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
-    }
+
 
     fun areAllEssentialGranted(context: Context): Boolean {
         return isDefaultDialer(context) &&
@@ -122,8 +121,8 @@ object PermissionChecklistHelper {
         return listOf(
             PermissionCheckItem(
                 id = "default_dialer",
-                title = "Default Phone App",
-                description = "Required to answer calls, handle incoming phone calls, and manage call blocking.",
+                title = RivoText.get(com.grinch.rivo4.R.string.ui_default_phone_app_72),
+                description = RivoText.get(com.grinch.rivo4.R.string.ui_required_to_answer_calls_handle_incoming_phone_calls_and_manag_73),
                 icon = Icons.Outlined.VerifiedUser,
                 isGranted = isDefaultDialer(context),
                 isEssential = true,
@@ -131,8 +130,8 @@ object PermissionChecklistHelper {
             ),
             PermissionCheckItem(
                 id = "phone_state",
-                title = "Phone & SIM Access",
-                description = "Required to place calls directly, manage dual SIM cards, and detect call status.",
+                title = RivoText.get(com.grinch.rivo4.R.string.ui_phone_sim_access_74),
+                description = RivoText.get(com.grinch.rivo4.R.string.ui_required_to_place_calls_directly_manage_dual_sim_cards_and_det_75),
                 icon = Icons.Outlined.Call,
                 isGranted = hasPhonePermission(context),
                 isEssential = true,
@@ -141,8 +140,8 @@ object PermissionChecklistHelper {
             ),
             PermissionCheckItem(
                 id = "contacts",
-                title = "Contacts",
-                description = "Required to display contact names, show caller info, and search contacts via T9 dialpad.",
+                title = RivoText.get(com.grinch.rivo4.R.string.ui_contacts_76),
+                description = RivoText.get(com.grinch.rivo4.R.string.ui_required_to_display_contact_names_show_caller_info_and_search__77),
                 icon = Icons.Outlined.Contacts,
                 isGranted = hasContactsPermission(context),
                 isEssential = true,
@@ -151,8 +150,8 @@ object PermissionChecklistHelper {
             ),
             PermissionCheckItem(
                 id = "call_log",
-                title = "Call History",
-                description = "Required to display your incoming, outgoing, and missed call history in Recents.",
+                title = RivoText.get(com.grinch.rivo4.R.string.ui_call_history_78),
+                description = RivoText.get(com.grinch.rivo4.R.string.ui_required_to_display_your_incoming_outgoing_and_missed_call_his_79),
                 icon = Icons.Outlined.History,
                 isGranted = hasCallLogPermission(context),
                 isEssential = true,
@@ -169,8 +168,8 @@ object PermissionChecklistHelper {
             items.add(
                 PermissionCheckItem(
                     id = "notifications",
-                    title = "Call Notifications",
-                    description = "Show incoming call banners, active call status, and missed call reminders.",
+                    title = RivoText.get(com.grinch.rivo4.R.string.ui_call_notifications_80),
+                    description = RivoText.get(com.grinch.rivo4.R.string.ui_show_incoming_call_banners_active_call_status_and_missed_call__81),
                     icon = Icons.Outlined.Notifications,
                     isGranted = hasNotificationPermission(context),
                     isEssential = false,
@@ -183,8 +182,8 @@ object PermissionChecklistHelper {
         items.add(
             PermissionCheckItem(
                 id = "overlay",
-                title = "Floating Call Bubble",
-                description = "Multitask while on a call with a floating pill overlay with mute, speaker, and end call controls.",
+                title = RivoText.get(com.grinch.rivo4.R.string.ui_floating_call_bubble_64),
+                description = RivoText.get(com.grinch.rivo4.R.string.ui_multitask_while_on_a_call_with_a_floating_pill_overlay_with_mu_82),
                 icon = Icons.Outlined.PictureInPicture,
                 isGranted = hasOverlayPermission(context),
                 isEssential = false,
@@ -195,8 +194,8 @@ object PermissionChecklistHelper {
         items.add(
             PermissionCheckItem(
                 id = "battery",
-                title = "Reliable Background Calls",
-                description = "Prevents system battery saver from suppressing incoming calls when your screen is locked.",
+                title = RivoText.get(com.grinch.rivo4.R.string.ui_reliable_background_calls_83),
+                description = RivoText.get(com.grinch.rivo4.R.string.ui_prevents_system_battery_saver_from_suppressing_incoming_calls__84),
                 icon = Icons.Outlined.BatteryChargingFull,
                 isGranted = isBatteryOptimizationIgnored(context),
                 isEssential = false,
@@ -204,18 +203,7 @@ object PermissionChecklistHelper {
             )
         )
 
-        items.add(
-            PermissionCheckItem(
-                id = "audio_recording",
-                title = "Call Recording",
-                description = "Record incoming and outgoing phone calls and voice notes directly within the app.",
-                icon = Icons.Outlined.Mic,
-                isGranted = hasAudioRecordPermission(context),
-                isEssential = false,
-                actionType = PermissionActionType.RUNTIME,
-                permissions = listOf(Manifest.permission.RECORD_AUDIO)
-            )
-        )
+        // Recording authorization belongs to Shizuku in Call recording settings.
 
         return items
     }
@@ -228,10 +216,17 @@ object PermissionChecklistHelper {
     }
 
     fun getBatteryOptimizationIntent(context: Context): Intent {
-        return Intent(
+        val directRequest = Intent(
             Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
             Uri.parse("package:${context.packageName}")
         )
+        if (directRequest.resolveActivity(context.packageManager) != null) {
+            return directRequest
+        }
+
+        // Some OEM builds omit the per-app consent activity. In that case, keep
+        // the button useful by opening the system battery-optimization list.
+        return Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
     }
 
     fun getAppSettingsIntent(context: Context): Intent {

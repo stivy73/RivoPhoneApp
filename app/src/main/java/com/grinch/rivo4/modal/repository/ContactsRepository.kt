@@ -1,5 +1,6 @@
 package com.grinch.rivo4.modal.repository
 
+import com.grinch.rivo4.controller.util.RivoText
 import android.accounts.Account
 import android.accounts.AccountManager
 import android.content.ContentProviderOperation
@@ -931,7 +932,7 @@ class ContactsRepository(
 
         allContacts.forEachIndexed { index, contact ->
             val cleanName = contact.name.trim().lowercase()
-            if (cleanName.isNotBlank() && cleanName != unknownLabel.lowercase() && cleanName != "(no name)") {
+            if (cleanName.isNotBlank() && cleanName != unknownLabel.lowercase() && cleanName != RivoText.get(com.grinch.rivo4.R.string.ui_no_name_479)) {
                 val existing = nameMap[cleanName]
                 if (existing != null) {
                     union(index, existing)

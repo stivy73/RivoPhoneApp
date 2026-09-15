@@ -1,5 +1,6 @@
 package com.grinch.rivo4.view.screen.settings
 
+import com.grinch.rivo4.controller.util.RivoText
 import android.content.Context
 import android.telecom.TelecomManager
 import androidx.compose.foundation.layout.*
@@ -54,6 +55,7 @@ fun BlockedNumbersScreen(
     resultRecipient: ResultRecipient<ContactSelectionScreenDestination, String>
 ) {
     val context = LocalContext.current
+    val rivoResources = androidx.compose.ui.platform.LocalResources.current
     val prefs = koinInject<PreferenceManager>()
     val contactsVM: ContactsViewModel = koinActivityViewModel()
     val allContacts by contactsVM.allContacts.collectAsState()
@@ -82,17 +84,17 @@ fun BlockedNumbersScreen(
                         val result = BlockedNumbersManager.exportToCsv(context, os, allContacts)
                         result.onSuccess { count ->
                             withContext(Dispatchers.Main) {
-                                importStatusMessage = context.getString(R.string.settings_blocked_export_success, count)
+                                importStatusMessage = rivoResources.getString(R.string.settings_blocked_export_success, count)
                             }
                         }.onFailure {
                             withContext(Dispatchers.Main) {
-                                importStatusMessage = context.getString(R.string.settings_blocked_file_error)
+                                importStatusMessage = rivoResources.getString(R.string.settings_blocked_file_error)
                             }
                         }
                     }
                 } catch (e: Exception) {
                     withContext(Dispatchers.Main) {
-                        importStatusMessage = context.getString(R.string.settings_blocked_file_error)
+                        importStatusMessage = rivoResources.getString(R.string.settings_blocked_file_error)
                     }
                 }
             }
@@ -113,9 +115,9 @@ fun BlockedNumbersScreen(
                                 isProcessingFile = false
                                 refreshKey++
                                 if (res.totalParsed == 0) {
-                                    importStatusMessage = context.getString(R.string.settings_blocked_csv_empty)
+                                    importStatusMessage = rivoResources.getString(R.string.settings_blocked_csv_empty)
                                 } else {
-                                    importStatusMessage = context.getString(
+                                    importStatusMessage = rivoResources.getString(
                                         R.string.settings_blocked_import_success,
                                         res.newlyBlocked,
                                         res.alreadyBlocked
@@ -125,14 +127,14 @@ fun BlockedNumbersScreen(
                         }.onFailure {
                             withContext(Dispatchers.Main) {
                                 isProcessingFile = false
-                                importStatusMessage = context.getString(R.string.settings_blocked_file_error)
+                                importStatusMessage = rivoResources.getString(R.string.settings_blocked_file_error)
                             }
                         }
                     }
                 } catch (e: Exception) {
                     withContext(Dispatchers.Main) {
                         isProcessingFile = false
-                        importStatusMessage = context.getString(R.string.settings_blocked_file_error)
+                        importStatusMessage = rivoResources.getString(R.string.settings_blocked_file_error)
                     }
                 }
             }
@@ -234,7 +236,7 @@ fun BlockedNumbersScreen(
                                 )
                                 Spacer(Modifier.height(2.dp))
                                 Text(
-                                    text = "${blockedNumbers.size} numbers blocked • " + stringResource(R.string.settings_blocked_numbers_supporting),
+                                    text = RivoText.get(com.grinch.rivo4.R.string.ui_numbers_blocked_445, (blockedNumbers.size).toString()) + stringResource(R.string.settings_blocked_numbers_supporting),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -245,7 +247,7 @@ fun BlockedNumbersScreen(
                             onClick = {
                                 navigator.navigate(
                                     ContactSelectionScreenDestination(
-                                        title = "Block Numbers or Contacts",
+                                        title = RivoText.get(com.grinch.rivo4.R.string.ui_block_numbers_or_contacts_446),
                                         isMultiSelect = true,
                                         actionButtonText = "Block"
                                     )
@@ -256,7 +258,7 @@ fun BlockedNumbersScreen(
                         ) {
                             Icon(Icons.Outlined.PersonSearch, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(8.dp))
-                            Text("Select Contacts or Enter Number")
+                            Text(RivoText.get(com.grinch.rivo4.R.string.ui_select_contacts_or_enter_number_447))
                         }
                         Spacer(Modifier.height(8.dp))
                         Row(
@@ -272,7 +274,7 @@ fun BlockedNumbersScreen(
                             ) {
                                 Icon(Icons.Outlined.FileUpload, contentDescription = null, modifier = Modifier.size(18.dp))
                                 Spacer(Modifier.width(6.dp))
-                                Text("Import CSV")
+                                Text(RivoText.get(com.grinch.rivo4.R.string.ui_import_csv_448))
                             }
                             OutlinedButton(
                                 onClick = {
@@ -284,110 +286,7 @@ fun BlockedNumbersScreen(
                             ) {
                                 Icon(Icons.Outlined.FileDownload, contentDescription = null, modifier = Modifier.size(18.dp))
                                 Spacer(Modifier.width(6.dp))
-                                Text("Export CSV")
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (blockedNumbers.isNotEmpty()) {
-                item {
-                    OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = { searchQuery = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("Search blocked list...") },
-                        leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
-                        trailingIcon = {
-                            if (searchQuery.isNotEmpty()) {
-                                IconButton(onClick = { searchQuery = "" }) {
-                                    Icon(Icons.Default.Clear, contentDescription = null)
-                                }
-                            }
-                        },
-                        singleLine = true,
-                        shape = RoundedCornerShape(16.dp)
-                    )
-                }
-            }
-
-            item {
-                RivoExpressiveCard(
-                    title = stringResource(R.string.blocked_list_title),
-                    icon = Icons.Outlined.Block
-                ) {
-                    if (filteredBlockedNumbers.isEmpty()) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 28.dp, horizontal = 16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Surface(
-                                modifier = Modifier.size(56.dp),
-                                shape = CircleShape,
-                                color = MaterialTheme.colorScheme.surfaceContainerHighest
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Icon(
-                                        Icons.Outlined.CheckCircle,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(28.dp)
-                                    )
-                                }
-                            }
-                            Spacer(Modifier.height(12.dp))
-                            Text(
-                                text = if (searchQuery.isBlank()) stringResource(R.string.blocked_list_empty) else "No matching blocked numbers",
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    } else {
-                        filteredBlockedNumbers.forEachIndexed { index, entry ->
-                            val matchedContact = remember(allContacts, entry.originalNumber) {
-                                allContacts.find { c ->
-                                    c.phoneNumbers.any { num -> com.grinch.rivo4.controller.util.areNumbersEqual(num, entry.originalNumber) }
-                                }
-                            }
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Box(modifier = Modifier.weight(1f)) {
-                                    if (matchedContact != null) {
-                                        RivoListItem(
-                                            headline = matchedContact.name,
-                                            supporting = formatPhoneNumber(entry.originalNumber),
-                                            avatarName = matchedContact.name,
-                                            photoUri = matchedContact.photoUri,
-                                            onClick = { }
-                                        )
-                                    } else {
-                                        RivoListItem(
-                                            headline = formatPhoneNumber(entry.originalNumber),
-                                            supporting = stringResource(R.string.blocked_list_item_supporting),
-                                            leadingIcon = Icons.Outlined.Block,
-                                            onClick = { }
-                                        )
-                                    }
-                                }
-                                FilledTonalButton(
-                                    onClick = { numberToUnblock = entry },
-                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                                    modifier = Modifier.padding(end = 8.dp)
-                                ) {
-                                    Text(
-                                        text = stringResource(R.string.action_unblock),
-                                        style = MaterialTheme.typography.labelMedium
-                                    )
-                                }
-                            }
-                            if (index < filteredBlockedNumbers.size - 1) {
-                                RivoDivider(Modifier.padding(horizontal = 16.dp))
+                                Text(RivoText.get(com.grinch.rivo4.R.string.ui_export_csv_449))
                             }
                         }
                     }
@@ -462,6 +361,109 @@ fun BlockedNumbersScreen(
                 }
             }
 
+            if (blockedNumbers.isNotEmpty()) {
+                item {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = { Text(RivoText.get(com.grinch.rivo4.R.string.ui_search_blocked_list_450)) },
+                        leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
+                        trailingIcon = {
+                            if (searchQuery.isNotEmpty()) {
+                                IconButton(onClick = { searchQuery = "" }) {
+                                    Icon(Icons.Default.Clear, contentDescription = null)
+                                }
+                            }
+                        },
+                        singleLine = true,
+                        shape = RoundedCornerShape(16.dp)
+                    )
+                }
+            }
+
+            item {
+                RivoExpressiveCard(
+                    title = stringResource(R.string.blocked_list_title),
+                    icon = Icons.Outlined.Block
+                ) {
+                    if (filteredBlockedNumbers.isEmpty()) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 28.dp, horizontal = 16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Surface(
+                                modifier = Modifier.size(56.dp),
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.surfaceContainerHighest
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        Icons.Outlined.CheckCircle,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(28.dp)
+                                    )
+                                }
+                            }
+                            Spacer(Modifier.height(12.dp))
+                            Text(
+                                text = if (searchQuery.isBlank()) stringResource(R.string.blocked_list_empty) else RivoText.get(com.grinch.rivo4.R.string.ui_no_matching_blocked_numbers_451),
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    } else {
+                        filteredBlockedNumbers.forEachIndexed { index, entry ->
+                            val matchedContact = remember(allContacts, entry.originalNumber) {
+                                allContacts.find { c ->
+                                    c.phoneNumbers.any { num -> com.grinch.rivo4.controller.util.areNumbersEqual(num, entry.originalNumber) }
+                                }
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(modifier = Modifier.weight(1f)) {
+                                    if (matchedContact != null) {
+                                        RivoListItem(
+                                            headline = matchedContact.name,
+                                            supporting = formatPhoneNumber(entry.originalNumber),
+                                            avatarName = matchedContact.name,
+                                            photoUri = matchedContact.photoUri,
+                                            onClick = { }
+                                        )
+                                    } else {
+                                        RivoListItem(
+                                            headline = formatPhoneNumber(entry.originalNumber),
+                                            supporting = stringResource(R.string.blocked_list_item_supporting),
+                                            leadingIcon = Icons.Outlined.Block,
+                                            onClick = { }
+                                        )
+                                    }
+                                }
+                                FilledTonalButton(
+                                    onClick = { numberToUnblock = entry },
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                    modifier = Modifier.padding(end = 8.dp)
+                                ) {
+                                    Text(
+                                        text = stringResource(R.string.action_unblock),
+                                        style = MaterialTheme.typography.labelMedium
+                                    )
+                                }
+                            }
+                            if (index < filteredBlockedNumbers.size - 1) {
+                                RivoDivider(Modifier.padding(horizontal = 16.dp))
+                            }
+                        }
+                    }
+                }
+            }
+
             item { Spacer(Modifier.height(80.dp)) }
         }
     }
@@ -490,7 +492,7 @@ fun BlockedNumbersScreen(
             }
         ) {
             Text(
-                text = "Unblock ${formatPhoneNumber(target.originalNumber)}?",
+                text = RivoText.get(com.grinch.rivo4.R.string.ui_unblock_452, (formatPhoneNumber(target.originalNumber)).toString()),
                 style = MaterialTheme.typography.bodyMedium
             )
         }
@@ -499,7 +501,7 @@ fun BlockedNumbersScreen(
     if (isProcessingFile) {
         RivoDialog(
             onDismissRequest = { },
-            title = "Processing...",
+            title = RivoText.get(com.grinch.rivo4.R.string.ui_processing_453),
             confirmButton = { }
         ) {
             Row(
@@ -511,7 +513,7 @@ fun BlockedNumbersScreen(
             ) {
                 CircularProgressIndicator(modifier = Modifier.size(28.dp))
                 Spacer(Modifier.width(16.dp))
-                Text("Processing CSV file...")
+                Text(RivoText.get(com.grinch.rivo4.R.string.ui_processing_csv_file_454))
             }
         }
     }
@@ -519,7 +521,7 @@ fun BlockedNumbersScreen(
     if (importStatusMessage != null) {
         RivoDialog(
             onDismissRequest = { importStatusMessage = null },
-            title = "Blocklist CSV",
+            title = RivoText.get(com.grinch.rivo4.R.string.ui_blocklist_csv_455),
             icon = Icons.Outlined.Info,
             confirmButton = {
                 TextButton(onClick = { importStatusMessage = null }) {

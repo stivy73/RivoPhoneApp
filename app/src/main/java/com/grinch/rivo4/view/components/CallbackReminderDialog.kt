@@ -1,5 +1,6 @@
 package com.grinch.rivo4.view.components
 
+import com.grinch.rivo4.controller.util.RivoText
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -68,21 +69,21 @@ fun CallbackReminderDialog(
 
     val presets = remember(tomorrowMorningMinutes) {
         listOf(
-            "15 mins" to 15L,
-            "30 mins" to 30L,
-            "1 hour" to 60L,
-            "3 hours" to 180L,
-            "Tomorrow 9 AM" to tomorrowMorningMinutes
+            RivoText.get(com.grinch.rivo4.R.string.ui_15_mins_115) to 15L,
+            RivoText.get(com.grinch.rivo4.R.string.ui_30_mins_116) to 30L,
+            RivoText.get(com.grinch.rivo4.R.string.ui_1_hour_117) to 60L,
+            RivoText.get(com.grinch.rivo4.R.string.ui_3_hours_118) to 180L,
+            RivoText.get(com.grinch.rivo4.R.string.ui_tomorrow_9_am_119) to tomorrowMorningMinutes
         )
     }
 
     var selectedMinutes by remember { mutableLongStateOf(15L) }
-    var selectedLabel by remember { mutableStateOf("15 mins") }
+    var selectedLabel by remember { mutableStateOf(RivoText.get(com.grinch.rivo4.R.string.ui_15_mins_115)) }
     var noteText by remember { mutableStateOf("") }
 
     RivoDialog(
         onDismissRequest = onDismissRequest,
-        title = "Callback Reminder",
+        title = RivoText.get(com.grinch.rivo4.R.string.ui_callback_reminder_120),
         icon = Icons.Outlined.Alarm,
         dismissButton = {
             TextButton(onClick = onDismissRequest) {
@@ -101,7 +102,7 @@ fun CallbackReminderDialog(
                         )
                         Toast.makeText(
                             context,
-                            "Reminder set for $selectedLabel",
+                            RivoText.get(com.grinch.rivo4.R.string.ui_reminder_set_for_121, (selectedLabel).toString()),
                             Toast.LENGTH_SHORT
                         ).show()
                         onReminderScheduled?.invoke()
@@ -110,7 +111,7 @@ fun CallbackReminderDialog(
                 },
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Text("Set Reminder")
+                Text(RivoText.get(com.grinch.rivo4.R.string.ui_set_reminder_122))
             }
         }
     ) {
@@ -120,7 +121,7 @@ fun CallbackReminderDialog(
                 .padding(horizontal = 8.dp)
         ) {
             Text(
-                text = "Remind to call ${contactName?.ifBlank { null } ?: phoneNumber} in:",
+                text = RivoText.get(com.grinch.rivo4.R.string.ui_remind_to_call_phonenumber_in_123, (contactName?.ifBlank { null } ?: phoneNumber).toString()),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -163,8 +164,8 @@ fun CallbackReminderDialog(
             OutlinedTextField(
                 value = noteText,
                 onValueChange = { noteText = it },
-                label = { Text("Note (optional)") },
-                placeholder = { Text("e.g. Call about the proposal") },
+                label = { Text(RivoText.get(com.grinch.rivo4.R.string.ui_note_optional_124)) },
+                placeholder = { Text(RivoText.get(com.grinch.rivo4.R.string.ui_e_g_call_about_the_proposal_125)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp)

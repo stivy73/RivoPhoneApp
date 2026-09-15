@@ -1,5 +1,6 @@
 package com.grinch.rivo4.controller.fakecall
 
+import com.grinch.rivo4.controller.util.RivoText
 import android.Manifest
 import android.content.Context
 import android.content.Intent
@@ -140,7 +141,7 @@ class FakeCallActivity : ComponentActivity() {
     }
 
     private fun updateOngoingNotification() {
-        val callerName = intent.getStringExtra(FakeCallManager.EXTRA_NAME) ?: "Mom"
+        val callerName = intent.getStringExtra(FakeCallManager.EXTRA_NAME) ?: RivoText.get(com.grinch.rivo4.R.string.ui_mom_232)
         val phoneNumber = intent.getStringExtra(FakeCallManager.EXTRA_NUMBER) ?: "+1 (555) 019-2834"
         val photoUri = intent.getStringExtra(FakeCallManager.EXTRA_PHOTO_URI)
         val time = if (currentConnectTime > 0) currentConnectTime else System.currentTimeMillis()
@@ -177,7 +178,7 @@ class FakeCallActivity : ComponentActivity() {
             getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
         }
 
-        val callerName = intent.getStringExtra(FakeCallManager.EXTRA_NAME) ?: "Mom"
+        val callerName = intent.getStringExtra(FakeCallManager.EXTRA_NAME) ?: RivoText.get(com.grinch.rivo4.R.string.ui_mom_232)
         val phoneNumber = intent.getStringExtra(FakeCallManager.EXTRA_NUMBER) ?: "+1 (555) 019-2834"
         val photoUri = intent.getStringExtra(FakeCallManager.EXTRA_PHOTO_URI)
         val shouldVibrate = intent.getBooleanExtra(FakeCallManager.EXTRA_VIBRATE, true)
@@ -391,16 +392,13 @@ class FakeCallActivity : ComponentActivity() {
     fun dismissFakeCall() {
         if (isFinishingCall) return
         isFinishingCall = true
-        if (CallRecorder.isRecording.value) {
-            CallRecorder.stop()
-        }
         stopRingtoneAndVibration()
         releaseProximityLock()
         FakeCallNotificationManager.cancelNotification(this)
 
         val shouldLog = preferenceManager.getBoolean(PreferenceManager.KEY_LOG_FAKE_CALLS, true)
         if (shouldLog) {
-            val callerName = intent.getStringExtra(FakeCallManager.EXTRA_NAME) ?: "Mom"
+            val callerName = intent.getStringExtra(FakeCallManager.EXTRA_NAME) ?: RivoText.get(com.grinch.rivo4.R.string.ui_mom_232)
             val phoneNumber = intent.getStringExtra(FakeCallManager.EXTRA_NUMBER) ?: "+1 (555) 019-2834"
             val wasAnswered = currentConnectTime > 0L
             val durationSec = if (wasAnswered) {
@@ -437,9 +435,6 @@ class FakeCallActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        if (CallRecorder.isRecording.value) {
-            CallRecorder.stop()
-        }
         if (activeActivity?.get() == this) {
             activeActivity = null
         }
@@ -488,20 +483,7 @@ private fun FakeCallScreenContent(
     val showCallScreenAvatar = remember(settingsState) {
         preferenceManager.getBoolean(PreferenceManager.KEY_SHOW_CALL_SCREEN_AVATAR, true)
     }
-    val recordingEnabled = remember(settingsState) {
-        preferenceManager.getBoolean(PreferenceManager.KEY_CALL_RECORDING, true)
-    }
-    val isRecording by CallRecorder.isRecording.collectAsState()
-
-    val recordAudioPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission(),
-        onResult = { granted ->
-            if (granted) {
-                CallRecorder.start(context, callerName.ifBlank { phoneNumber })
-            }
-        }
-    )
-
+    // Simulated calls have no Telecom audio stream and must not operate the real recorder.
     LaunchedEffect(callState) {
         if (callState == Call.STATE_ACTIVE) {
             if (connectTimeMillis == 0L) {
@@ -603,25 +585,6 @@ private fun FakeCallScreenContent(
                 )
             }
 
-            if (isRecording) {
-                Row(
-                    modifier = Modifier.padding(top = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        Icons.Default.FiberManualRecord,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.size(12.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = stringResource(R.string.call_recording_in_progress),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
-            }
         }
     }
 
@@ -644,8 +607,8 @@ private fun FakeCallScreenContent(
             isMuted = isMuted,
             audioState = fakeAudioState,
             showKeypad = showKeypad,
-            recordingEnabled = recordingEnabled,
-            isRecording = isRecording,
+            recordingEnabled = false,
+            isRecording = false,
             compact = compact,
             onToggleMute = onToggleMute,
             onToggleKeypad = { showKeypad = !showKeypad },
@@ -660,17 +623,7 @@ private fun FakeCallScreenContent(
                 }
                 try { context.startActivity(intent) } catch (e: Exception) {}
             },
-            onToggleRecording = {
-                if (isRecording) {
-                    CallRecorder.stop()
-                } else {
-                    if (CallRecorder.hasAudioPermission(context)) {
-                        CallRecorder.start(context, callerName.ifBlank { phoneNumber })
-                    } else {
-                        recordAudioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                    }
-                }
-            },
+            onToggleRecording = {},
             onEndCall = {
                 callState = Call.STATE_DISCONNECTED
                 onDeclineOrEndCall()

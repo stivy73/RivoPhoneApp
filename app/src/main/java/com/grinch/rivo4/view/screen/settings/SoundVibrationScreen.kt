@@ -1,5 +1,6 @@
 package com.grinch.rivo4.view.screen.settings
 
+import com.grinch.rivo4.controller.util.RivoText
 import android.content.Intent
 import android.provider.Settings
 import androidx.compose.foundation.layout.*
@@ -143,8 +144,8 @@ fun SoundVibrationScreen(
                     )
                     RivoDivider(Modifier.padding(horizontal = 16.dp))
                     RivoSwitchListItem(
-                        headline = "Volume Squeeze for DND",
-                        supporting = "Press both volume buttons together to toggle Do Not Disturb",
+                        headline = RivoText.get(com.grinch.rivo4.R.string.ui_volume_squeeze_for_dnd_210),
+                        supporting = RivoText.get(com.grinch.rivo4.R.string.ui_press_both_volume_buttons_together_to_toggle_do_not_disturb_211),
                         leadingIcon = Icons.Outlined.DoNotDisturbOn,
                         checked = volumeSqueezeDnd,
                         onCheckedChange = {

@@ -1,5 +1,6 @@
 package com.grinch.rivo4.view.screen
 
+import com.grinch.rivo4.controller.util.RivoText
 import android.content.Context
 import android.content.Intent
 import android.media.AudioManager
@@ -143,7 +144,7 @@ fun DialPadScreen(
         if (cleanNumber.isNotEmpty() && cleanNumber == secretDialpadCode.replace(" ", "")) {
             textFieldValue = TextFieldValue("")
             val visible = contactsVM.toggleHiddenContactsVisible()
-            val msg = if (visible) "Private Storage visible" else "Private Storage hidden"
+            val msg = if (visible) RivoText.get(com.grinch.rivo4.R.string.ui_private_storage_visible_185) else RivoText.get(com.grinch.rivo4.R.string.ui_private_storage_hidden_186)
             android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_SHORT).show()
             return@LaunchedEffect
         }

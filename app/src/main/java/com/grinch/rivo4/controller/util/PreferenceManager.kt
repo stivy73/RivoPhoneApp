@@ -1,5 +1,6 @@
 package com.grinch.rivo4.controller.util
 
+import com.grinch.rivo4.controller.util.RivoText
 import android.content.Context
 import android.content.SharedPreferences
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -58,6 +59,44 @@ class PreferenceManager(context: Context) {
 
     fun setInt(key: String, value: Int) {
         prefs.edit().putInt(key, value).apply()
+    }
+
+    fun settingsBackupSnapshot(): Map<String, Any> = prefs.all
+        .filterKeys(::isBackupEligible)
+        .mapNotNull { (key, value) ->
+            when (value) {
+                is Boolean, is Int, is Long, is Float, is String -> key to value
+                is Set<*> -> if (value.all { it is String }) key to value.filterIsInstance<String>().toSet() else null
+                else -> null
+            }
+        }
+        .toMap()
+
+    fun restoreSettingsBackup(settings: Map<String, Any>): Boolean {
+        val validated = settings.filterKeys(::isBackupEligible)
+        require(validated.size == settings.size) { "Backup contains excluded settings" }
+        val editor = prefs.edit()
+        prefs.all.keys.filter(::isBackupEligible).forEach(editor::remove)
+        validated.forEach { (key, value) ->
+            when (value) {
+                is Boolean -> editor.putBoolean(key, value)
+                is Int -> editor.putInt(key, value)
+                is Long -> editor.putLong(key, value)
+                is Float -> editor.putFloat(key, value)
+                is String -> editor.putString(key, value)
+                is Set<*> -> {
+                    require(value.all { it is String }) { "Unsupported setting value" }
+                    editor.putStringSet(key, value.filterIsInstance<String>().toSet())
+                }
+                else -> throw IllegalArgumentException("Unsupported setting value")
+            }
+        }
+        return editor.commit()
+    }
+
+    private fun isBackupEligible(key: String): Boolean {
+        if (SETTINGS_BACKUP_EXCLUDED_PREFIXES.any(key::startsWith)) return false
+        return key !in SETTINGS_BACKUP_EXCLUDED_KEYS
     }
 
     fun setLastUsedNumber(contactId: String, number: String) {
@@ -320,11 +359,11 @@ class PreferenceManager(context: Context) {
         const val KEY_VOLUME_SQUEEZE_DND = "volume_squeeze_dnd"
         const val KEY_QUICK_RESPONSES = "custom_quick_responses"
         val DEFAULT_QUICK_RESPONSES = listOf(
-            "Can't talk now. What's up?",
-            "I'll call you right back.",
-            "I'll call you later.",
-            "Can't talk now. Call me later?",
-            "I'm in a meeting. Will message you soon."
+            RivoText.get(com.grinch.rivo4.R.string.ui_can_t_talk_now_what_s_up_32),
+            RivoText.get(com.grinch.rivo4.R.string.ui_i_ll_call_you_right_back_33),
+            RivoText.get(com.grinch.rivo4.R.string.ui_i_ll_call_you_later_34),
+            RivoText.get(com.grinch.rivo4.R.string.ui_can_t_talk_now_call_me_later_35),
+            RivoText.get(com.grinch.rivo4.R.string.ui_i_m_in_a_meeting_will_message_you_soon_36)
         )
         const val KEY_BOTTOM_NAV_ORDER = "bottom_nav_order"
         const val KEY_BOTTOM_NAV_HIDDEN = "bottom_nav_hidden"
@@ -386,6 +425,29 @@ class PreferenceManager(context: Context) {
         const val TAB_RECORDINGS = 3
 
         val DEFAULT_BOTTOM_NAV_ORDER = listOf(TAB_RECENTS, TAB_CONTACTS, TAB_FAVORITES, TAB_RECORDINGS)
+
+        private val SETTINGS_BACKUP_EXCLUDED_KEYS = setOf(
+            KEY_APP_LOCK_ENABLED,
+            KEY_APP_LOCK_BIOMETRIC,
+            KEY_APP_LOCK_PIN,
+            KEY_APP_LOCK_TIMEOUT,
+            KEY_SECRET_DIALPAD_CODE,
+            KEY_ONBOARDING_SHOWN,
+            KEY_PERMISSION_POPUP_SHOWN,
+            KEY_PATREON_PROMPT_SHOWN,
+            KEY_APP_USAGE_SECONDS,
+            KEY_RATE_APP_SHOWN,
+            KEY_RATE_APP_SNOOZED_TIME
+        )
+
+        private val SETTINGS_BACKUP_EXCLUDED_PREFIXES = listOf(
+            CONTACT_BACKGROUND_PREFIX,
+            CONTACT_BACKGROUND_NUMBER_PREFIX,
+            "last_used_number_",
+            "favorite_number_",
+            "favorite_sim_",
+            "favorite_email_"
+        )
     }
 
     fun isAppLockEnabled(): Boolean = getBoolean(KEY_APP_LOCK_ENABLED, false)

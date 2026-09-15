@@ -441,10 +441,10 @@ class CallActivity : ComponentActivity() {
 
     private val volumeSqueezeHelper by lazy { com.grinch.rivo4.controller.util.VolumeSqueezeHelper(this, preferenceManager) }
 
-    override fun dispatchKeyEvent(event: android.view.KeyEvent): Boolean {
-        if (volumeSqueezeHelper.handleKeyEvent(event)) {
+    override fun onKeyDown(keyCode: Int, event: android.view.KeyEvent?): Boolean {
+        if (event != null && volumeSqueezeHelper.handleKeyEvent(event)) {
             return true
         }
-        return super.dispatchKeyEvent(event)
+        return super.onKeyDown(keyCode, event)
     }
 }

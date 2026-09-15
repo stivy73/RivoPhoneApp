@@ -1,5 +1,6 @@
 package com.grinch.rivo4.controller.fakecall
 
+import com.grinch.rivo4.controller.util.RivoText
 import android.app.KeyguardManager
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -26,7 +27,7 @@ class FakeCallReceiver : BroadcastReceiver() {
         when (action) {
             FakeCallManager.ACTION_TRIGGER_FAKE_CALL -> {
                 val scheduleId = intent.getStringExtra(FakeCallManager.EXTRA_SCHEDULE_ID) ?: ""
-                val callerName = intent.getStringExtra(FakeCallManager.EXTRA_NAME) ?: "Mom"
+                val callerName = intent.getStringExtra(FakeCallManager.EXTRA_NAME) ?: RivoText.get(com.grinch.rivo4.R.string.ui_mom_232)
                 val phoneNumber = intent.getStringExtra(FakeCallManager.EXTRA_NUMBER) ?: "+1 (555) 019-2834"
                 val photoUri = intent.getStringExtra(FakeCallManager.EXTRA_PHOTO_URI)
                 val vibrate = intent.getBooleanExtra(FakeCallManager.EXTRA_VIBRATE, true)

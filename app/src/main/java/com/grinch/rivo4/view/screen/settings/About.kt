@@ -1,5 +1,6 @@
 package com.grinch.rivo4.view.screen.settings
 
+import com.grinch.rivo4.controller.util.RivoText
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -120,6 +121,22 @@ fun AboutScreen(navigator: DestinationsNavigator) {
             }
 
             RivoExpressiveCard {
+                Text(stringResource(R.string.recorder_fork_notice), modifier = Modifier.padding(12.dp))
+                RivoListItem(
+                    headline = stringResource(R.string.recorder_attribution),
+                    supporting = "ShizuCallRecorder 1.3.3 (19)",
+                    leadingIcon = Icons.Outlined.Code,
+                    onClick = { openLink(context, "https://github.com/kitsumed/ShizuCallRecorder") }
+                )
+                RivoListItem(
+                    headline = stringResource(R.string.recorder_licenses),
+                    supporting = "Rivo · ShizuCallRecorder · scrcpy",
+                    leadingIcon = Icons.Outlined.Info,
+                    onClick = { openLink(context, "https://github.com/stivy73/RivoPhoneApp/blob/codex/shizu-recorder-it/THIRD_PARTY_NOTICES.md") }
+                )
+            }
+
+            RivoExpressiveCard {
                 Column(
                     modifier = Modifier.padding(4.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -160,7 +177,7 @@ fun AboutScreen(navigator: DestinationsNavigator) {
                 Icon(Icons.Default.Star, contentDescription = null, modifier = Modifier.size(22.dp), tint = Color(0xFFFFB300))
                 Spacer(modifier = Modifier.width(10.dp))
                 Text(
-                    text = "Rate on Google Play",
+                    text = RivoText.get(com.grinch.rivo4.R.string.ui_rate_on_google_play_350),
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.labelLarge
                 )

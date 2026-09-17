@@ -29,15 +29,19 @@ import com.google.accompanist.permissions.PermissionStatus
 import com.google.accompanist.permissions.rememberPermissionState
 import com.grinch.rivo4.R
 import com.grinch.rivo4.controller.ContactsViewModel
+import com.grinch.rivo4.controller.identification.BusinessPlace
+import com.grinch.rivo4.controller.identification.CallerIdentification
 import com.grinch.rivo4.controller.util.PreferenceManager
 import com.grinch.rivo4.controller.util.makeCall
 import com.grinch.rivo4.controller.util.formatPhoneNumber
 import com.grinch.rivo4.view.components.*
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
+import com.ramcosta.composedestinations.generated.destinations.BusinessPlaceDetailsScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.ContactDetailsScreenDestination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinActivityViewModel
 
@@ -102,11 +106,25 @@ fun ContactSearchContent(
     val contactsVM: ContactsViewModel = koinActivityViewModel()
     val contacts by contactsVM.allContacts.collectAsState()
     val prefs = koinInject<PreferenceManager>()
+    val callerIdentification = koinInject<CallerIdentification>()
+    val identificationRevision by callerIdentification.revision.collectAsState()
     val callLauncher = rememberCallLauncher()
     val settingsState by prefs.settingsChanged.collectAsState()
     val roundness = remember(settingsState) { prefs.getInt(PreferenceManager.KEY_CARD_ROUNDNESS, 28).coerceAtLeast(1) }
 
     var query by remember { mutableStateOf("") }
+    var businessResults by remember { mutableStateOf<List<BusinessPlace>>(emptyList()) }
+    var businessLoading by remember { mutableStateOf(false) }
+
+    LaunchedEffect(query, identificationRevision) {
+        businessResults = emptyList()
+        businessLoading = false
+        if (!callerIdentification.businessSearchEnabled() || query.trim().length < 3) return@LaunchedEffect
+        delay(550)
+        businessLoading = true
+        businessResults = runCatching { callerIdentification.searchBusinesses(query) }.getOrDefault(emptyList())
+        businessLoading = false
+    }
 
     BackHandler(enabled = query.isNotEmpty()) {
         query = ""
@@ -173,9 +191,9 @@ fun ContactSearchContent(
         Box(modifier = Modifier.weight(1f)) {
             AnimatedContent(
                 targetState = when {
-                    contacts.isEmpty() -> 0
+                    contacts.isEmpty() && query.isBlank() -> 0
                     query.isBlank() -> 1
-                    filteredContacts.isEmpty() -> 2
+                    filteredContacts.isEmpty() && businessResults.isEmpty() && !businessLoading -> 2
                     else -> 3
                 },
                 transitionSpec = {
@@ -310,6 +328,47 @@ fun ContactSearchContent(
                                             )
                                         }
                                     }
+                                }
+                            }
+                            if (businessLoading) {
+                                item {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth().padding(24.dp),
+                                        horizontalArrangement = Arrangement.Center,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                                        Spacer(Modifier.width(12.dp))
+                                        Text(stringResource(R.string.business_searching))
+                                    }
+                                }
+                            }
+                            if (businessResults.isNotEmpty()) {
+                                item {
+                                    RivoSectionHeader(
+                                        title = stringResource(R.string.business_results_header),
+                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                                        icon = Icons.Default.Business
+                                    )
+                                }
+                                itemsIndexed(businessResults) { _, business ->
+                                    RivoListItem(
+                                        headline = business.name,
+                                        supporting = listOfNotNull(business.type, business.address).joinToString(" • ").ifBlank { null },
+                                        supporting2 = business.phone,
+                                        leadingIcon = Icons.Default.Business,
+                                        trailingIcon = Icons.Default.ChevronRight,
+                                        onClick = {
+                                            navigator.navigate(BusinessPlaceDetailsScreenDestination(
+                                                name = business.name,
+                                                phone = business.phone,
+                                                address = business.address,
+                                                type = business.type,
+                                                mapsUri = business.mapsUri
+                                            ))
+                                        },
+                                        modifier = Modifier.padding(horizontal = 16.dp)
+                                    )
                                 }
                             }
                         }

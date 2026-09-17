@@ -11,14 +11,19 @@ import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.net.Uri
 import android.os.Build
+import android.os.OutcomeReceiver
+import android.os.ParcelUuid
 import android.provider.BlockedNumberContract
 import android.telecom.Call
 import android.telecom.CallAudioState
+import android.telecom.CallEndpoint
+import android.telecom.CallEndpointException
 import android.telecom.DisconnectCause
 import android.telecom.InCallService
 import android.telecom.TelecomManager
 import android.telecom.VideoProfile
 import android.util.Log
+import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import androidx.core.graphics.drawable.IconCompat
 import com.grinch.rivo4.R
@@ -40,6 +45,21 @@ data class CallSession(
     val connectTimeMillis: Long = 0L
 )
 
+/** A user-visible Telecom endpoint. Bluetooth endpoints remain distinct by id and name. */
+data class CallAudioEndpoint(
+    val id: ParcelUuid,
+    val name: String,
+    val type: Int
+) {
+    companion object {
+        const val TYPE_EARPIECE = 1
+        const val TYPE_BLUETOOTH = 2
+        const val TYPE_WIRED_HEADSET = 3
+        const val TYPE_SPEAKER = 4
+        const val TYPE_STREAMING = 5
+    }
+}
+
 class CallService : InCallService() {
 
     private val contactsRepository: IContactsRepository by inject()
@@ -50,6 +70,7 @@ class CallService : InCallService() {
     private val callStartTimes = mutableMapOf<Call, Long>()
     private val identifiedIncomingCalls = mutableSetOf<Call>()
     private var flipToSilenceManager: FlipToSilenceManager? = null
+    private var platformCallEndpoints: Map<ParcelUuid, CallEndpoint> = emptyMap()
 
     private fun getContactBitmap(photoUri: String?): Bitmap? {
         if (photoUri == null) return null
@@ -79,6 +100,13 @@ class CallService : InCallService() {
         private val _audioState = MutableStateFlow<CallAudioState?>(null)
         val audioState = _audioState.asStateFlow()
 
+        /** Android exposes every call-capable endpoint here, including each connected Bluetooth device. */
+        private val _availableCallEndpoints = MutableStateFlow<List<CallAudioEndpoint>>(emptyList())
+        val availableCallEndpoints = _availableCallEndpoints.asStateFlow()
+
+        private val _currentCallEndpoint = MutableStateFlow<ParcelUuid?>(null)
+        val currentCallEndpoint = _currentCallEndpoint.asStateFlow()
+
         val isActivityVisible = MutableStateFlow(false)
 
         private var instance: CallService? = null
@@ -99,6 +127,21 @@ class CallService : InCallService() {
 
         fun setAudioRoute(route: Int) {
             instance?.setAudioRoute(route)
+        }
+
+        fun selectCallEndpoint(endpointId: ParcelUuid) {
+            instance?.selectCallEndpoint(endpointId)
+        }
+
+        @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+        private fun requestCallEndpointChange(service: CallService, endpoint: CallEndpoint) {
+            service.requestCallEndpointChange(endpoint, service.mainExecutor,
+                object : OutcomeReceiver<Void, CallEndpointException> {
+                    override fun onResult(result: Void?) = Unit
+                    override fun onError(error: CallEndpointException) {
+                        Log.w("CallService", "Call endpoint change failed")
+                    }
+                })
         }
 
         fun cycleAudioRoute() {
@@ -183,6 +226,13 @@ class CallService : InCallService() {
                 try { call.disconnect() } catch (e: Exception) {}
             }
         }
+    }
+
+    private fun selectCallEndpoint(endpointId: ParcelUuid) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) return
+        val endpoint = platformCallEndpoints[endpointId] ?: return
+        if (endpointId == _currentCallEndpoint.value) return
+        requestCallEndpointChange(this, endpoint)
     }
 
     override fun onCreate() {
@@ -530,6 +580,9 @@ class CallService : InCallService() {
             flipToSilenceManager?.stopListening()
         }
         if (calls.isEmpty()) {
+            _availableCallEndpoints.value = emptyList()
+            _currentCallEndpoint.value = null
+            platformCallEndpoints = emptyMap()
             if (CallRecorder.state.value.busy) CallRecorder.stop()
             com.grinch.rivo4.controller.floating.FloatingCallService.stop(this)
             removeForeground()
@@ -543,6 +596,38 @@ class CallService : InCallService() {
         super.onCallAudioStateChanged(audioState)
         _audioState.value = audioState
         _currentCallSession.value?.call?.let { updateNotification(it) }
+    }
+
+    override fun onAvailableCallEndpointsChanged(availableEndpoints: List<CallEndpoint>) {
+        super.onAvailableCallEndpointsChanged(availableEndpoints)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            updateAvailableCallEndpoints(availableEndpoints)
+        }
+    }
+
+    override fun onCallEndpointChanged(callEndpoint: CallEndpoint) {
+        super.onCallEndpointChanged(callEndpoint)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            updateCurrentCallEndpoint(callEndpoint)
+        }
+        _currentCallSession.value?.call?.let { updateNotification(it) }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    private fun updateAvailableCallEndpoints(availableEndpoints: List<CallEndpoint>) {
+        platformCallEndpoints = availableEndpoints.associateBy { it.identifier }
+        _availableCallEndpoints.value = availableEndpoints.map { endpoint ->
+            CallAudioEndpoint(
+                id = endpoint.identifier,
+                name = endpoint.endpointName.toString(),
+                type = endpoint.endpointType
+            )
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    private fun updateCurrentCallEndpoint(callEndpoint: CallEndpoint) {
+        _currentCallEndpoint.value = callEndpoint.identifier
     }
 
 
@@ -768,6 +853,9 @@ class CallService : InCallService() {
         super.onDestroy()
         flipToSilenceManager?.stopListening()
         if (CallRecorder.state.value.busy) CallRecorder.stop()
+        _availableCallEndpoints.value = emptyList()
+        _currentCallEndpoint.value = null
+        platformCallEndpoints = emptyMap()
         if (instance == this) instance = null
         serviceScope.cancel()
     }

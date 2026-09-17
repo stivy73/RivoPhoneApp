@@ -12,6 +12,17 @@ enum class ProviderStatus { NOT_CONFIGURED, VERIFYING, CONFIGURED, INVALID_KEY, 
     BILLING, QUOTA, RESTRICTION, TIMEOUT, UNREACHABLE, ERROR }
 class ProviderFailure(val status: ProviderStatus) : Exception(status.name)
 
+/** A transient Google Places result. It is never written to the identification cache. */
+data class BusinessPlace(
+    val id: String,
+    val name: String,
+    val phone: String?,
+    val address: String?,
+    val type: String?,
+    val mapsUri: String?,
+    val attributions: List<Pair<String, String>>
+)
+
 object ProviderPayloads {
     private fun text(value: JsonElement?): String? = (value as? JsonPrimitive)?.takeIf { it.isString }
         ?.content?.trim()?.takeIf { it.lowercase() !in listOf("", "n/a", "unknown", "null", "unavailable") }
@@ -54,6 +65,30 @@ object ProviderPayloads {
         }
     }
 
+    fun businesses(data: JsonObject): List<BusinessPlace> {
+        val places = data["places"] as? JsonArray ?: if (data.isEmpty()) JsonArray(emptyList())
+            else throw ProviderFailure(ProviderStatus.ERROR)
+        return places.mapNotNull { element ->
+            val place = element as? JsonObject ?: return@mapNotNull null
+            val id = text(place["id"]) ?: return@mapNotNull null
+            val name = text((place["displayName"] as? JsonObject)?.get("text")) ?: return@mapNotNull null
+            BusinessPlace(
+                id = id,
+                name = name,
+                phone = text(place["internationalPhoneNumber"]) ?: text(place["nationalPhoneNumber"]),
+                address = text(place["shortFormattedAddress"]) ?: text(place["formattedAddress"]),
+                type = text((place["primaryTypeDisplayName"] as? JsonObject)?.get("text")),
+                mapsUri = text(place["googleMapsUri"]),
+                attributions = (place["attributions"] as? JsonArray).orEmpty().mapNotNull { attribution ->
+                    val item = attribution as? JsonObject ?: return@mapNotNull null
+                    val provider = text(item["provider"]) ?: return@mapNotNull null
+                    val uri = text(item["providerUri"]) ?: return@mapNotNull null
+                    provider to uri
+                }
+            )
+        }.distinctBy { it.id }.take(5)
+    }
+
 }
 
 /** Independent 3-second deadlines, cancellable blocking I/O, fixed official HTTPS hosts. */
@@ -77,6 +112,12 @@ class DirectProviders(private val androidHeaders: () -> Map<String, String>,
         val result = google(secret, "Google", true)
         if (result.isNotEmpty() && result["places"] !is JsonArray) throw ProviderFailure(ProviderStatus.ERROR)
     }
+    suspend fun searchBusinesses(secret: String, query: String): List<BusinessPlace> {
+        if (secret.isBlank()) throw ProviderFailure(ProviderStatus.NOT_CONFIGURED)
+        val cleanQuery = query.trim().filterNot { it.isISOControl() }.take(160)
+        if (cleanQuery.length < 3) return emptyList()
+        return ProviderPayloads.businesses(googleBusiness(secret, cleanQuery))
+    }
     private suspend fun google(secret: String, query: String, verify: Boolean) = http(
         "https://places.googleapis.com/v1/places:searchText",
         androidHeaders() + mapOf("X-Goog-Api-Key" to secret, "X-Goog-FieldMask" to if (verify) "places.id" else
@@ -90,6 +131,19 @@ class DirectProviders(private val androidHeaders: () -> Map<String, String>,
             if (italianPhone) put("regionCode", "IT")
             put("pageSize", if (verify) 1 else 5)
             put("languageCode", "it")
+        }.toString())
+
+    private suspend fun googleBusiness(secret: String, query: String) = http(
+        "https://places.googleapis.com/v1/places:searchText",
+        androidHeaders() + mapOf(
+            "X-Goog-Api-Key" to secret,
+            "X-Goog-FieldMask" to "places.id,places.displayName,places.internationalPhoneNumber,places.nationalPhoneNumber,places.shortFormattedAddress,places.formattedAddress,places.primaryTypeDisplayName,places.googleMapsUri,places.attributions"
+        ),
+        buildJsonObject {
+            put("textQuery", query)
+            put("pageSize", 5)
+            put("languageCode", "it")
+            put("regionCode", "IT")
         }.toString())
 
  }

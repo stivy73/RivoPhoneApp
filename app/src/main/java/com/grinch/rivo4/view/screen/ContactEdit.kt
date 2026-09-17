@@ -52,6 +52,7 @@ fun ContactEditScreen(
     contactId: String? = null,
     initialName: String? = null,
     initialPhone: String? = null,
+    initialAddress: String? = null,
     navigator: DestinationsNavigator
 ) {
     val contactsVM: ContactsViewModel = koinActivityViewModel()
@@ -140,6 +141,10 @@ fun ContactEditScreen(
             if (!initialPhone.isNullOrBlank() && phones.all { it.number.isBlank() }) {
                 phones.clear()
                 phones.add(PhoneNumberEntry(initialPhone))
+            }
+            if (!initialAddress.isNullOrBlank() && addresses.all { it.isBlank() }) {
+                addresses.clear()
+                addresses.add(initialAddress)
             }
         }
     }

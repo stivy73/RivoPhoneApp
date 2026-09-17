@@ -1285,6 +1285,8 @@
     <string name="caller_description">Contacts and custom names take priority. Only unknown numbers are sent to the providers you enable.</string>
     <string name="caller_online">Enable online identification</string>
     <string name="caller_google">Use Google Places</string>
+    <string name="caller_business_search">Search businesses from Rivo search</string>
+    <string name="caller_business_search_summary">Find businesses by name with Google Places. The query is sent to Google only while you search.</string>
     <string name="caller_manage">Manage custom names</string>
     <string name="caller_add_custom">Add a custom name</string>
     <string name="caller_clear">Clear identification cache</string>
@@ -1326,6 +1328,14 @@
     <string name="caller_update_contact">Update name in contacts</string>
     <string name="caller_update_review">The contact editor will open with the suggested name. Contacts will only change when you tap Save.</string>
     <string name="caller_edit_unavailable">Unable to open a unique contact for this number. Open the contact from your address book to edit it.</string>
+    <string name="business_results_header">Businesses on Google Maps</string>
+    <string name="business_searching">Searching businesses…</string>
+    <string name="business_details_title">Business details</string>
+    <string name="business_details_source">Result from Google Maps</string>
+    <string name="business_phone">Phone</string>
+    <string name="business_address">Address</string>
+    <string name="business_save_contact">Save to contacts</string>
+    <string name="business_phone_unavailable">This result has no telephone number to save.</string>
     <string name="drive_private_storage">New recordings are stored in Rivo’s private folder, outside the media library. Uninstalling removes local copies.</string>
     <string name="drive_title">Recording backup</string>
     <string name="drive_description">Keep a second copy on Google Drive after saving locally. The first connection requires Google Cloud OAuth configuration for this app.</string>
@@ -1348,7 +1358,7 @@
     <string name="drive_connecting">Connecting…</string>
     <string name="drive_reconnect">Verify / reconnect Google Drive</string>
     <string name="drive_automatic">Automatically back up local Rivo recordings</string>
-    <string name="drive_wifi">Only unmetered networks (usually Wi-Fi)</string>
+    <string name="drive_wifi">Wi-Fi only</string>
     <string name="drive_pending">Files remaining: %1$d</string>
     <string name="drive_last">Last successful operation: %1$s</string>
     <string name="drive_backup_now">Back up now / retry</string>

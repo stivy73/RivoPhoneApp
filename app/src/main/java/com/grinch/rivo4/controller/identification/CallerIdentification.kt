@@ -42,6 +42,7 @@ class CallerIdentification(private val context: Context) {
     private val providerVersions = java.util.concurrent.ConcurrentHashMap<String, Int>()
     private val lookupStates = java.util.concurrent.ConcurrentHashMap<String, Int>()
     @Volatile private var generation = 0
+    @Volatile private var businessGeneration = 0
     @Volatile private var country = Locale.getDefault().country.uppercase(Locale.ROOT)
     private val countryReady = scope.async {
             country = runCatching {
@@ -133,6 +134,7 @@ class CallerIdentification(private val context: Context) {
     }
     private fun cancelProvider(provider: String) {
         providerVersions.merge(provider, 1, Int::plus)
+        if (provider == "google") businessGeneration++
         providerJobs.filterKeys { it.startsWith("$provider:") }.values.forEach { it.cancel() }
     }
     @Synchronized fun toggle(key: String, enabled: Boolean) {
@@ -142,6 +144,28 @@ class CallerIdentification(private val context: Context) {
         storage.edit { putBoolean(key, enabled) }
         if (key == "google" && !enabled) results.keys.removeAll { it.startsWith("google:") }
         revision.update { it + 1 }
+    }
+    @Synchronized fun setBusinessSearchEnabled(enabled: Boolean) {
+        businessGeneration++
+        storage.edit { putBoolean("business_search", enabled) }
+        revision.update { it + 1 }
+    }
+    fun businessSearchEnabled(): Boolean = option("business_search")
+
+    /**
+     * Searches Google Places only for the active search screen. Results are deliberately transient:
+     * unlike caller-ID data, no business name, telephone number or address is persisted here.
+     */
+    suspend fun searchBusinesses(query: String): List<BusinessPlace> = withContext(Dispatchers.IO) {
+        val cleanQuery = query.trim().filterNot { it.isISOControl() }.take(160)
+        if (cleanQuery.length < 3 || !businessSearchEnabled() || !option("google") || !option("verified:google")) {
+            return@withContext emptyList()
+        }
+        val epoch = businessGeneration
+        val secret = secrets.read("google")
+        val places = direct.searchBusinesses(secret, cleanQuery)
+        if (epoch != businessGeneration || !businessSearchEnabled() || !option("google") || !option("verified:google")) emptyList()
+        else places
     }
     @Synchronized private fun invalidate() {
         generation++

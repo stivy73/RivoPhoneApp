@@ -18,6 +18,7 @@
 | 3 | Capsula auricolare | Entrambe le voci udibili | DA VERIFICARE | — |
 | 4 | Vivavoce | Entrambe le voci udibili, nessun cambiamento automatico della sorgente | DA VERIFICARE | — |
 | 5 | Bluetooth | Ripetere con il dispositivo Bluetooth realmente usato; entrambe le voci udibili | DA VERIFICARE | — |
+| 5a | Scelta dispositivo Bluetooth | Con almeno due dispositivi collegati, Uscita audio mostra ogni nome e instrada la chiamata sul dispositivo selezionato | DA VERIFICARE | — |
 | 6 | Schermo acceso | Controlli e stato coerenti | DA VERIFICARE | — |
 | 7 | Schermo spento | Cattura continua senza interruzioni | DA VERIFICARE | — |
 | 8 | Telefono bloccato | Cattura continua e fine chiamata gestita | DA VERIFICARE | — |

@@ -6,10 +6,10 @@ plugins {
     id 'com.google.devtools.ksp' version '2.1.0-1.0.29'
 }
 
-def baseVersionCode = 2026091501
+def baseVersionCode = 2026091700
 def buildNumber = (System.getenv("BUILD_NUMBER") ?: System.getenv("GITHUB_RUN_NUMBER") ?: "0") as int
 def isPreviewBuild = System.getenv("PREVIEW_BUILD") == "true"
-def baseVersionName = "2.3"
+def baseVersionName = "2.4"
 
 android {
     namespace = 'com.grinch.rivo4'

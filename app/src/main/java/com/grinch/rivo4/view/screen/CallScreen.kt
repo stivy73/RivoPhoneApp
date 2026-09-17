@@ -78,6 +78,7 @@ import com.grinch.rivo4.controller.util.PreferenceManager
 import coil.compose.AsyncImage
 import com.grinch.rivo4.controller.CallRecorder
 import com.grinch.rivo4.controller.CallService
+import com.grinch.rivo4.controller.CallAudioEndpoint
 import com.grinch.rivo4.modal.`interface`.IContactsRepository
 import com.grinch.rivo4.view.components.RivoSelectionDialog
 import com.grinch.rivo4.view.theme.callColors
@@ -89,6 +90,39 @@ import java.util.*
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.seconds
+
+private data class AudioOutputOption(
+    val label: String,
+    val legacyRoute: Int,
+    val endpoint: CallAudioEndpoint? = null
+)
+
+private fun legacyRouteForEndpoint(endpointType: Int): Int = when (endpointType) {
+    CallAudioEndpoint.TYPE_EARPIECE -> CallAudioState.ROUTE_EARPIECE
+    CallAudioEndpoint.TYPE_SPEAKER -> CallAudioState.ROUTE_SPEAKER
+    CallAudioEndpoint.TYPE_WIRED_HEADSET -> CallAudioState.ROUTE_WIRED_HEADSET
+    else -> CallAudioState.ROUTE_BLUETOOTH
+}
+
+private fun audioEndpointLabel(
+    endpoint: CallAudioEndpoint,
+    handsetLabel: String,
+    speakerLabel: String,
+    headsetLabel: String,
+    bluetoothLabel: String
+): String = when (endpoint.type) {
+    CallAudioEndpoint.TYPE_EARPIECE -> handsetLabel
+    CallAudioEndpoint.TYPE_SPEAKER -> speakerLabel
+    CallAudioEndpoint.TYPE_WIRED_HEADSET -> headsetLabel
+    else -> endpoint.name.trim().ifBlank { bluetoothLabel }
+}
+
+private fun audioEndpointIcon(endpointType: Int): ImageVector = when (endpointType) {
+    CallAudioEndpoint.TYPE_SPEAKER -> Icons.AutoMirrored.Filled.VolumeUp
+    CallAudioEndpoint.TYPE_WIRED_HEADSET -> Icons.Default.Headset
+    CallAudioEndpoint.TYPE_EARPIECE -> Icons.Default.Phone
+    else -> Icons.Default.Bluetooth
+}
 
 @Composable
 private fun audioRouteLabel(audioRoute: Int, audioState: CallAudioState?): String {
@@ -126,6 +160,8 @@ fun ExpressiveCallScreen(
     val telecomManager = remember { context.getSystemService(Context.TELECOM_SERVICE) as TelecomManager }
     
     val allCalls by CallService.allCalls.collectAsState()
+    val availableCallEndpoints by CallService.availableCallEndpoints.collectAsState()
+    val currentCallEndpoint by CallService.currentCallEndpoint.collectAsState()
     val otherCall = remember(allCalls, call) {
         @Suppress("DEPRECATION")
         allCalls.find { it != call && it.state != Call.STATE_DISCONNECTED }
@@ -202,40 +238,69 @@ fun ExpressiveCallScreen(
         val speakerLabel = stringResource(R.string.audio_route_speaker)
         val headsetLabel = stringResource(R.string.audio_route_headset)
         val bluetoothLabel = stringResource(R.string.audio_route_bluetooth)
-        val options = remember(supported, handsetLabel, speakerLabel, headsetLabel, bluetoothLabel) {
-            mutableListOf<Pair<String, Int>>().apply {
-                if ((supported and CallAudioState.ROUTE_EARPIECE) != 0) add(handsetLabel to CallAudioState.ROUTE_EARPIECE)
-                if ((supported and CallAudioState.ROUTE_SPEAKER) != 0) add(speakerLabel to CallAudioState.ROUTE_SPEAKER)
-                if ((supported and CallAudioState.ROUTE_WIRED_HEADSET) != 0) add(headsetLabel to CallAudioState.ROUTE_WIRED_HEADSET)
-                if ((supported and CallAudioState.ROUTE_BLUETOOTH) != 0) {
-                    val deviceName = try {
-                        audioState?.activeBluetoothDevice?.name
-                    } catch (e: SecurityException) {
-                        null
+        val options = remember(availableCallEndpoints, supported, handsetLabel, speakerLabel, headsetLabel, bluetoothLabel) {
+            if (availableCallEndpoints.isNotEmpty()) {
+                availableCallEndpoints
+                    .sortedBy { endpoint ->
+                        when (endpoint.type) {
+                            CallAudioEndpoint.TYPE_EARPIECE -> 0
+                            CallAudioEndpoint.TYPE_SPEAKER -> 1
+                            CallAudioEndpoint.TYPE_WIRED_HEADSET -> 2
+                            CallAudioEndpoint.TYPE_BLUETOOTH, CallAudioEndpoint.TYPE_STREAMING -> 3
+                            else -> 4
+                        }
                     }
-                    add((deviceName ?: bluetoothLabel) to CallAudioState.ROUTE_BLUETOOTH)
+                    .map { endpoint ->
+                        AudioOutputOption(
+                            label = audioEndpointLabel(endpoint, handsetLabel, speakerLabel, headsetLabel, bluetoothLabel),
+                            legacyRoute = legacyRouteForEndpoint(endpoint.type),
+                            endpoint = endpoint
+                        )
+                    }
+            } else {
+                mutableListOf<AudioOutputOption>().apply {
+                    if ((supported and CallAudioState.ROUTE_EARPIECE) != 0) add(AudioOutputOption(handsetLabel, CallAudioState.ROUTE_EARPIECE))
+                    if ((supported and CallAudioState.ROUTE_SPEAKER) != 0) add(AudioOutputOption(speakerLabel, CallAudioState.ROUTE_SPEAKER))
+                    if ((supported and CallAudioState.ROUTE_WIRED_HEADSET) != 0) add(AudioOutputOption(headsetLabel, CallAudioState.ROUTE_WIRED_HEADSET))
+                    if ((supported and CallAudioState.ROUTE_BLUETOOTH) != 0) {
+                        val deviceName = try {
+                            audioState?.activeBluetoothDevice?.name
+                        } catch (e: SecurityException) {
+                            null
+                        }
+                        add(AudioOutputOption(deviceName ?: bluetoothLabel, CallAudioState.ROUTE_BLUETOOTH))
+                    }
                 }
             }
         }
 
-        RivoSelectionDialog<Pair<String, Int>>(
+        RivoSelectionDialog<AudioOutputOption>(
             onDismissRequest = { showAudioPicker = false },
             title = stringResource(R.string.audio_output_title),
             items = options,
-            itemLabel = { option -> option.first },
+            itemLabel = { option -> option.label },
+            itemSupporting = { option ->
+                if (option.endpoint?.type == CallAudioEndpoint.TYPE_BLUETOOTH ||
+                    option.endpoint?.type == CallAudioEndpoint.TYPE_STREAMING) bluetoothLabel else ""
+            },
             onItemSelected = { option ->
                 view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-                CallService.setAudioRoute(option.second)
+                option.endpoint?.let { CallService.selectCallEndpoint(it.id) }
+                    ?: CallService.setAudioRoute(option.legacyRoute)
             },
-            isSelected = { option -> option.second == audioState?.route },
+            isSelected = { option ->
+                option.endpoint?.id == currentCallEndpoint ||
+                    (option.endpoint == null && option.legacyRoute == audioState?.route)
+            },
             icon = Icons.AutoMirrored.Filled.VolumeUp,
             itemIcon = { option ->
-                when (option.second) {
-                    CallAudioState.ROUTE_SPEAKER -> Icons.AutoMirrored.Filled.VolumeUp
-                    CallAudioState.ROUTE_BLUETOOTH -> Icons.Default.Bluetooth
-                    CallAudioState.ROUTE_WIRED_HEADSET -> Icons.Default.Headset
-                    else -> Icons.Default.Phone
-                }
+                option.endpoint?.let { audioEndpointIcon(it.type) }
+                    ?: when (option.legacyRoute) {
+                        CallAudioState.ROUTE_SPEAKER -> Icons.AutoMirrored.Filled.VolumeUp
+                        CallAudioState.ROUTE_BLUETOOTH -> Icons.Default.Bluetooth
+                        CallAudioState.ROUTE_WIRED_HEADSET -> Icons.Default.Headset
+                        else -> Icons.Default.Phone
+                    }
             }
         )
     }

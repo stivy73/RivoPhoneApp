@@ -53,9 +53,9 @@ data class CallAudioEndpoint(
 ) {
     companion object {
         const val TYPE_EARPIECE = 1
-        const val TYPE_SPEAKER = 2
+        const val TYPE_BLUETOOTH = 2
         const val TYPE_WIRED_HEADSET = 3
-        const val TYPE_BLUETOOTH = 4
+        const val TYPE_SPEAKER = 4
         const val TYPE_STREAMING = 5
     }
 }
